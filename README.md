@@ -69,7 +69,7 @@ read those names.
 | `libraos.runtime.port` | `8900` | Runtime port on `127.0.0.1` |
 | `libraos.runtime.postgresPort` | `55432` | Postgres port on `127.0.0.1` (Linux) |
 | `libraos.runtime.image` | pinned release | Runtime image; keep it pinned by `@sha256:` digest |
-| `libraos.consoleUrl` | `https://app.libraos.com` | Developer Console |
+| `libraos.consoleUrl` | `https://console.libraos.com` | Developer Console |
 
 ## Roadmap
 

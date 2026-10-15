@@ -174,7 +174,7 @@
         },
         "libraos.consoleUrl": {
           "type": "string",
-          "default": "https://app.libraos.com",
+          "default": "https://console.libraos.com",
           "description": "LibraOS Developer Console."
         }
       }

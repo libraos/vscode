@@ -84,7 +84,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
   });
 
   cmd("libraos.openConsole", () => {
-    const url = vscode.workspace.getConfiguration("libraos").get<string>("consoleUrl", "https://app.libraos.com");
+    const url = vscode.workspace.getConfiguration("libraos").get<string>("consoleUrl", "https://console.libraos.com");
     return vscode.env.openExternal(vscode.Uri.parse(url));
   });
 
