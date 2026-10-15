@@ -52,12 +52,8 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
       if (!key) continue;
       const scoped = env.getScoped({ workspaceFolder: f });
       const vars: Record<string, string> = {
-        LIBRAOS_BASE_URL: runtime.baseUrl,
-        LIBRAOS_API_KEY: key,
-        // Names the cookbook and SDK examples read.
         LIBRA_OS_URL: runtime.baseUrl,
-        NOVA_OS_URL: runtime.baseUrl,
-        NOVA_OS_API_KEY: key,
+        LIBRA_OS_API_KEY: key,
       };
       for (const [k, v] of Object.entries(vars)) scoped.replace(k, v);
     }
@@ -236,7 +232,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
       writes.length ? "Creates:" : "Files already exist; nothing is overwritten.",
       ...writes.map(([u]) => `  ${vscode.workspace.asRelativePath(u)}`),
       "",
-      "Mints an API key for this project on the local runtime. The key is kept in VS Code SecretStorage and given to VS Code terminals as LIBRAOS_API_KEY; it is never written to the workspace.",
+      "Mints an API key for this project on the local runtime. The key is kept in VS Code SecretStorage and given to VS Code terminals as LIBRA_OS_API_KEY; it is never written to the workspace.",
       tpl.installCommand ? `\nThen offers to run: ${tpl.installCommand}` : "",
     ].join("\n");
     const ok = await vscode.window.showInformationMessage(
@@ -280,7 +276,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
     }
     if (await exists(quickUri)) await vscode.window.showTextDocument(quickUri);
     void vscode.window.showInformationMessage(
-      "LibraOS initialized. Open a new VS Code terminal to get LIBRAOS_BASE_URL and LIBRAOS_API_KEY.",
+      "LibraOS initialized. Open a new VS Code terminal to get LIBRA_OS_URL and LIBRA_OS_API_KEY.",
     );
   });
 

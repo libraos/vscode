@@ -103,7 +103,7 @@ exports.run = async function run() {
     log("5. The key reaches a new VS Code terminal, not the workspace");
     const out = path.join(work, ".terminal-env");
     const term = vscode.window.createTerminal({ name: "e2e", cwd: work });
-    term.sendText(`printf '%s|%s' "$LIBRAOS_BASE_URL" "\${LIBRAOS_API_KEY:0:3}" > "${out}"; exit`);
+    term.sendText(`printf '%s|%s' "$LIBRA_OS_URL" "\${LIBRA_OS_API_KEY:0:3}" > "${out}"; exit`);
     for (let i = 0; i < 100 && !fs.existsSync(out); i++) await new Promise((r) => setTimeout(r, 100));
     const termEnv = fs.readFileSync(out, "utf8");
     fs.rmSync(out);
@@ -122,7 +122,7 @@ exports.run = async function run() {
     assert.ok(key.length > 10, "key copied");
     const answer = execFileSync("node", ["libraos-quickstart.mts"], {
       cwd: work,
-      env: { ...process.env, LIBRAOS_BASE_URL: base, LIBRAOS_API_KEY: key },
+      env: { ...process.env, LIBRA_OS_URL: base, LIBRA_OS_API_KEY: key },
       encoding: "utf8",
       timeout: 120000,
     }).trim();

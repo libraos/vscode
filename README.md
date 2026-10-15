@@ -46,7 +46,7 @@ steps between your editor and a running runtime.
   and admin secrets, and each project's API key) is kept in VS Code
   **SecretStorage**. None is written to settings, your workspace or the
   generated compose file.
-- Your project's API key reaches your code through the `LIBRAOS_API_KEY`
+- Your project's API key reaches your code through the `LIBRA_OS_API_KEY`
   environment variable, which the extension sets in VS Code terminals only for
   the current session. Use **Copy Project API Key** to set it elsewhere, and
   never commit it.
@@ -56,9 +56,8 @@ steps between your editor and a running runtime.
   `localhost` model URLs are rewritten to `host.docker.internal`.
 - Installing asks for confirmation and shows the images and commands first.
 
-Variables set in VS Code terminals: `LIBRAOS_BASE_URL` and `LIBRAOS_API_KEY`,
-plus `LIBRA_OS_URL`, `NOVA_OS_URL` and `NOVA_OS_API_KEY` for the examples that
-read those names.
+Variables set in VS Code terminals: `LIBRA_OS_URL` and `LIBRA_OS_API_KEY`, the
+names the LibraOS SDK, CLI and cookbook read.
 
 ## Settings
 

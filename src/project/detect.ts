@@ -23,14 +23,14 @@ export interface ProjectTemplate {
 export const CONFIG_FILE = "libraos.json";
 
 // Non-secret project config. The API key stays in VS Code SecretStorage and
-// reaches the app through the LIBRAOS_API_KEY environment variable.
+// reaches the app through the LIBRA_OS_API_KEY environment variable.
 export function projectConfig(baseUrl: string, model: string): string {
   return (
     JSON.stringify(
       {
         runtime: { url: baseUrl },
         model,
-        apiKeyEnv: "LIBRAOS_API_KEY",
+        apiKeyEnv: "LIBRA_OS_API_KEY",
       },
       null,
       2,
@@ -39,11 +39,11 @@ export function projectConfig(baseUrl: string, model: string): string {
 }
 
 const chatTs = (model: string) => `// LibraOS quickstart: one chat call against the runtime.
-// VS Code terminals get LIBRAOS_BASE_URL and LIBRAOS_API_KEY from the LibraOS
+// VS Code terminals get LIBRA_OS_URL and LIBRA_OS_API_KEY from the LibraOS
 // extension. Elsewhere, set them yourself; never commit the key.
-const baseUrl = process.env.LIBRAOS_BASE_URL ?? "http://localhost:8900";
-const apiKey = process.env.LIBRAOS_API_KEY;
-if (!apiKey) throw new Error("LIBRAOS_API_KEY is not set");
+const baseUrl = process.env.LIBRA_OS_URL ?? "http://localhost:8900";
+const apiKey = process.env.LIBRA_OS_API_KEY;
+if (!apiKey) throw new Error("LIBRA_OS_API_KEY is not set");
 
 const res = await fetch(\`\${baseUrl}/v1/chat/completions\`, {
   method: "POST",
@@ -60,7 +60,7 @@ console.log(body.choices[0].message.content);
 
 const chatPy = (model: string) => `"""LibraOS quickstart: one chat call against the runtime.
 
-VS Code terminals get LIBRAOS_BASE_URL and LIBRAOS_API_KEY from the LibraOS
+VS Code terminals get LIBRA_OS_URL and LIBRA_OS_API_KEY from the LibraOS
 extension. Elsewhere, set them yourself; never commit the key.
 """
 import asyncio
@@ -71,8 +71,8 @@ from libraos import Client
 
 async def main() -> None:
     async with Client(
-        base_url=os.environ.get("LIBRAOS_BASE_URL", "http://localhost:8900"),
-        api_key=os.environ["LIBRAOS_API_KEY"],
+        base_url=os.environ.get("LIBRA_OS_URL", "http://localhost:8900"),
+        api_key=os.environ["LIBRA_OS_API_KEY"],
     ) as client:
         msg = await client.messages.create(
             "default",
@@ -88,7 +88,7 @@ asyncio.run(main())
 
 const chatGo = (model: string) => `// LibraOS quickstart: one chat call against the runtime.
 //
-// VS Code terminals get LIBRAOS_BASE_URL and LIBRAOS_API_KEY from the LibraOS
+// VS Code terminals get LIBRA_OS_URL and LIBRA_OS_API_KEY from the LibraOS
 // extension. Elsewhere, set them yourself; never commit the key.
 //
 // Run: go run libraos_quickstart.go
@@ -106,13 +106,13 @@ import (
 )
 
 func main() {
-	baseURL := os.Getenv("LIBRAOS_BASE_URL")
+	baseURL := os.Getenv("LIBRA_OS_URL")
 	if baseURL == "" {
 		baseURL = "http://localhost:8900"
 	}
-	apiKey := os.Getenv("LIBRAOS_API_KEY")
+	apiKey := os.Getenv("LIBRA_OS_API_KEY")
 	if apiKey == "" {
-		panic("LIBRAOS_API_KEY is not set")
+		panic("LIBRA_OS_API_KEY is not set")
 	}
 	reqBody, _ := json.Marshal(map[string]any{
 		"model":    ${JSON.stringify(model)},
@@ -168,12 +168,12 @@ export function projectTemplate(kind: ProjectKind, model: string): ProjectTempla
 
 const chatSh = (model: string) => `#!/usr/bin/env bash
 # LibraOS quickstart: one chat call against the runtime.
-# VS Code terminals get LIBRAOS_BASE_URL and LIBRAOS_API_KEY from the LibraOS
+# VS Code terminals get LIBRA_OS_URL and LIBRA_OS_API_KEY from the LibraOS
 # extension. Elsewhere, set them yourself; never commit the key.
 set -euo pipefail
-curl -sS "\${LIBRAOS_BASE_URL:-http://localhost:8900}/v1/chat/completions" \\
+curl -sS "\${LIBRA_OS_URL:-http://localhost:8900}/v1/chat/completions" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer \${LIBRAOS_API_KEY:?LIBRAOS_API_KEY is not set}" \\
+  -H "Authorization: Bearer \${LIBRA_OS_API_KEY:?LIBRA_OS_API_KEY is not set}" \\
   -d '{"model": ${JSON.stringify(model)}, "messages": [{"role": "user", "content": "Hello, LibraOS!"}]}'
 echo
 `;

@@ -89,7 +89,7 @@ describe.skipIf(!enabled)("local runtime end to end", () => {
       writeFileSync(f, t.quickstart);
       const out = execFileSync(cmd[0], [...cmd.slice(1), f], {
         cwd: dir,
-        env: { ...process.env, LIBRAOS_BASE_URL: base, LIBRAOS_API_KEY: apiKey },
+        env: { ...process.env, LIBRA_OS_URL: base, LIBRA_OS_API_KEY: apiKey },
         encoding: "utf8",
         timeout: 180_000,
       });
