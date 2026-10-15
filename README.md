@@ -87,7 +87,17 @@ npm run test:integration    # loads the extension in VS Code (needs a display, o
 npm run package             # builds libraos-<version>.vsix
 ```
 
-End to end against real Docker and a real model endpoint, leaving nothing behind:
+In a real VS Code: Configure Model → Install → Run → Initialize Project → the
+key reaches a new terminal → the quickstart gets an answer → Stop. The dialogs
+are answered by the test; Docker, the runtime, the model, files and terminals
+are real, and nothing is left behind:
+
+```bash
+LIBRAOS_E2E_MODEL_BASE=http://127.0.0.1:11434/v1 LIBRAOS_E2E_MODEL=qwen3:8b LIBRAOS_E2E_MODEL_KEY=… \
+xvfb-run -a npm run test:e2e
+```
+
+The runtime path alone, without VS Code:
 
 ```bash
 LIBRAOS_E2E=1 LIBRAOS_E2E_MODEL_KEY=… \

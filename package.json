@@ -187,7 +187,8 @@
     "test": "vitest run",
     "package": "vsce package --no-dependencies",
     "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production",
-    "test:integration": "npm run build && node test/integration/run.js"
+    "test:integration": "npm run build && node test/integration/run.js",
+    "test:e2e": "npm run build && node test/integration/e2e/run.js"
   },
   "devDependencies": {
     "@types/node": "^20.17.0",
