@@ -1,0 +1,201 @@
+{
+  "name": "libraos",
+  "displayName": "LibraOS \u2014 AI Runtime for VS Code",
+  "description": "Install, run and integrate the LibraOS Runtime into your existing app, from VS Code.",
+  "version": "0.1.0",
+  "preview": true,
+  "publisher": "libraos",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/libraos/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/libraos/vscode/issues"
+  },
+  "homepage": "https://libraos.com",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "libraos",
+    "ai",
+    "agents",
+    "runtime",
+    "llm"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "libraos",
+          "title": "LibraOS",
+          "icon": "media/libraos.png"
+        }
+      ]
+    },
+    "views": {
+      "libraos": [
+        {
+          "id": "libraos.workspace",
+          "name": "My Workspace"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "libraos.workspace",
+        "contents": "Welcome to LibraOS\nAdd the AI Core to your project."
+      }
+    ],
+    "commands": [
+      {
+        "command": "libraos.refresh",
+        "title": "Refresh",
+        "category": "LibraOS",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "libraos.signIn",
+        "title": "Sign In (Preview)",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.openConsole",
+        "title": "Open Console",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.configureModel",
+        "title": "Configure Model",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.installRuntime",
+        "title": "Install Runtime",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.startRuntime",
+        "title": "Run Local Runtime",
+        "category": "LibraOS",
+        "icon": "$(play)"
+      },
+      {
+        "command": "libraos.stopRuntime",
+        "title": "Stop Local Runtime",
+        "category": "LibraOS",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "libraos.showLogs",
+        "title": "Show Runtime Logs",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.initProject",
+        "title": "Initialize LibraOS Project",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.copyApiKey",
+        "title": "Copy Project API Key",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.browseExamples",
+        "title": "Browse Cookbook",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.openExample",
+        "title": "Open Example",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.cloudDeploy",
+        "title": "Cloud Deployment (Coming Soon)",
+        "category": "LibraOS"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "libraos.refresh",
+          "when": "view == libraos.workspace",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "libraos.openExample",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "LibraOS",
+      "properties": {
+        "libraos.runtime.port": {
+          "type": "number",
+          "default": 8900,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Local port the runtime listens on (bound to 127.0.0.1 only)."
+        },
+        "libraos.runtime.postgresPort": {
+          "type": "number",
+          "default": 55432,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Loopback port for the runtime's Postgres on Linux, where the runtime uses host networking."
+        },
+        "libraos.runtime.image": {
+          "type": "string",
+          "default": "ghcr.io/libraos/libraos:v0.2.1@sha256:17dc6f8ce7df3231c161e71b89c9e8a514bdf66d28fa9035883d36aade457bb6",
+          "description": "Runtime container image. Pin a digest (@sha256:\u2026) so Docker verifies what it pulls."
+        },
+        "libraos.model.baseUrl": {
+          "type": "string",
+          "default": "https://api.meganova.ai",
+          "description": "OpenAI-compatible model endpoint the runtime calls, e.g. https://api.meganova.ai, a local proxy such as http://127.0.0.1:8318/v1, or Ollama at http://127.0.0.1:11434/v1."
+        },
+        "libraos.model.name": {
+          "type": "string",
+          "default": "Qwen/Qwen3.6-35B-A3B",
+          "description": "Model the runtime uses for answers, planning and tools."
+        },
+        "libraos.consoleUrl": {
+          "type": "string",
+          "default": "https://app.libraos.com",
+          "description": "LibraOS Developer Console."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "npm run typecheck && node esbuild.mjs --production",
+    "test:integration": "npm run build && node test/integration/run.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "~1.95.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}
