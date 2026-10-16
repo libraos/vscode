@@ -300,7 +300,7 @@ export const EXAMPLES: Example[] = [
     agent: "research-agent",
     requirements: [
       "libraos-sdk 2.0.0; reads LIBRA_OS_URL, LIBRA_OS_API_KEY and LIBRA_OS_AGENT_ID",
-      "Managed jobs route /v1/managed/agents/jobs. Current Runtime source serves it; older releases may not, so check yours. For the native HTTP route with recovery, see “HTTP Async Job & Recovery”",
+      "Managed jobs route /v1/managed/agents/jobs. Runtime v0.2.2, the version this extension pins, does not serve it (404); it needs a later release. On v0.2.2, use “HTTP Async Job & Recovery”, which uses the native job routes",
     ],
     validation: "sdk",
     main: "python/examples/08_async_job_long_running.py",

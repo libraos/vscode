@@ -165,6 +165,7 @@ describe("prerequisites and runtime guidance", () => {
     expect(native).toContain("Not the SDK's managed jobs client");
     const sdk = exampleCard(ex("py-async-job"));
     expect(sdk).toContain("/v1/managed/agents/jobs");
+    expect(sdk).toContain("v0.2.2, the version this extension pins, does not serve it");
     expect(sdk).toContain("HTTP Async Job & Recovery");
     for (const e of EXAMPLES) expect(exampleCard(e)).not.toMatch(/1708/);
   });
