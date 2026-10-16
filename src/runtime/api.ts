@@ -70,6 +70,37 @@ export async function adminToken(base: string, email: string, password: string, 
   return token;
 }
 
+export interface SetupToken {
+  token: string;
+  expiresAt: number;
+}
+
+/** The runtime has no setup client: it was started before the extension added one. */
+export class SetupClientMissing extends RuntimeApiError {}
+
+// Exchanges the setup client's secret for a short-lived admin token
+// (OAuth client_credentials). Used by "Copy Setup Token".
+export async function setupToken(base: string, clientId: string, secret: string, f: Fetch = fetch, now = Date.now): Promise<SetupToken> {
+  const r = await f(`${base}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ grant_type: "client_credentials", client_id: clientId, client_secret: secret }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const body = (await r.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!r.ok) {
+    const code = typeof body.error === "string" ? body.error : "";
+    if (code === "unsupported_grant_type" || code === "invalid_client" || code === "unauthorized_client") {
+      throw new SetupClientMissing(`the runtime has no setup client yet (${code})`);
+    }
+    throw new RuntimeApiError(`setup token request failed: HTTP ${r.status}${code ? ` ${code}` : ""}`);
+  }
+  const token = body.access_token;
+  if (typeof token !== "string" || !token) throw new RuntimeApiError("setup token response had no token");
+  const expiresIn = typeof body.expires_in === "number" && body.expires_in > 0 ? body.expires_in : 3600;
+  return { token, expiresAt: now() + expiresIn * 1000 };
+}
+
 export interface MintedKey {
   id: string;
   secret: string;

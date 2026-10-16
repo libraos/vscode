@@ -80,6 +80,8 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
     private readonly runtime: RuntimeManager,
     private readonly project: () => Promise<ProjectState>,
     private readonly developer: () => DeveloperState,
+    /** Whether a Get Example folder is open, and whether its Run and Debug use this Runtime. */
+    private readonly examples: () => Promise<{ open: boolean; useRuntime: boolean }> = async () => ({ open: false, useRuntime: false }),
   ) {
     runtime.onDidChange(() => this.changed.fire());
   }
@@ -111,9 +113,20 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
       action("Model", "libraos.configureModel", "hubot", [], `${s.modelName}`),
     ];
     if (rt.status === "not-installed") runtimeChildren.push(action("Install Runtime", "libraos.installRuntime", "cloud-download"));
-    else if (rt.status === "running") runtimeChildren.push(action("Stop Local Runtime", "libraos.stopRuntime", "debug-stop"));
+    else if (rt.status === "running") {
+      runtimeChildren.push(action("Stop Local Runtime", "libraos.stopRuntime", "debug-stop"));
+      runtimeChildren.push(action("Copy Setup Token", "libraos.copySetupToken", "key", [], "for cookbook examples, 1 h"));
+    }
     else if (rt.status === "stopped") runtimeChildren.push(action("Run Local Runtime", "libraos.startRuntime", "play"));
     runtimeChildren.push(action("Logs", "libraos.showLogs", "output"));
+    const ex = await this.examples();
+    if (ex.open) {
+      runtimeChildren.push(
+        ex.useRuntime
+          ? action("Examples' Run and Debug", "libraos.toggleExamplesRuntime", "debug-alt", [], rt.status === "running" ? "use this Runtime (click to stop)" : "use this Runtime when it runs")
+          : action("Examples' Run and Debug", "libraos.toggleExamplesRuntime", "debug-alt", [], "off: click to use this Runtime"),
+      );
+    }
 
     const projectChildren: Node[] = proj.initialized
       ? [

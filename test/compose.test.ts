@@ -20,7 +20,7 @@ const settings = (mode: NetworkMode) => ({
   modelName: "gpt-5.6-sol",
   modelApiKey: "model-key",
 });
-const secrets = { pgPassword: "pg-secret", jwtSecret: "jwt-secret", adminPassword: "admin-secret" };
+const secrets = { pgPassword: "pg-secret", jwtSecret: "jwt-secret", adminPassword: "admin-secret", setupClientSecret: "setup-secret" };
 
 describe.each(["host", "bridge"] as const)("composeFile (%s)", (mode) => {
   const f = composeFile(mode);
@@ -38,6 +38,12 @@ describe.each(["host", "bridge"] as const)("composeFile (%s)", (mode) => {
   it("only uses variables composeEnv provides", () => {
     const provided = new Set(Object.keys(composeEnv(settings(mode), secrets)));
     for (const [, name] of f.matchAll(/\$\{([A-Z_]+)/g)) expect(provided).toContain(name);
+  });
+
+  it("registers the laptop-only setup client with its secret from the environment", () => {
+    expect(f).toContain("LIBRA_OS_SERVICE_CLIENTS: vscode-setup:admin=${LIBRAOS_SETUP_CLIENT_SECRET:?missing}");
+    expect(f).not.toContain("setup-secret");
+    expect(composeEnv(settings(mode), secrets).LIBRAOS_SETUP_CLIENT_SECRET).toBe("setup-secret");
   });
 
   it("keeps everything on loopback", () => {

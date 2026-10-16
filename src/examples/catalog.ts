@@ -69,6 +69,12 @@ export interface Example {
   main: string;
   /** Where the example runs from, and the command Get Example types (not runs) in a terminal. */
   run: { cwd: string; command: string };
+  /**
+   * Languages whose script reads LIBRA_OS_URL and LIBRA_OS_API_KEY from the
+   * environment, so a terminal with a setup token can run it on the Runtime
+   * this extension manages.
+   */
+  tokenVariants?: "all" | string[];
 }
 
 export const COOKBOOK_VERSIONS =
@@ -99,6 +105,7 @@ export const EXAMPLES: Example[] = [
     validation: "offlineAndReported",
     main: "get-started/01-first-agent/first-agent.py",
     run: { cwd: "get-started/01-first-agent", command: "{python} first-agent.py" },
+    tokenVariants: ["Python"],
   },
   {
     id: "ticket-routing",
@@ -114,6 +121,7 @@ export const EXAMPLES: Example[] = [
     validation: "offlineAndReported",
     main: "recipes/ticket-routing/ticket_routing.py",
     run: { cwd: "recipes/ticket-routing", command: "{python} ticket_routing.py" },
+    tokenVariants: "all",
   },
   {
     id: "document-qa",
@@ -131,6 +139,7 @@ export const EXAMPLES: Example[] = [
     validation: "offlineAndReported",
     main: "recipes/document-qa/document_qa.py",
     run: { cwd: "recipes/document-qa", command: "{python} document_qa.py" },
+    tokenVariants: "all",
   },
   {
     id: "tool-calling",
@@ -199,6 +208,7 @@ export const EXAMPLES: Example[] = [
     validation: "offlineOnly",
     main: "recipes/async-jobs/async_jobs.py",
     run: { cwd: "recipes/async-jobs", command: "{python} async_jobs.py submit --receipt job-receipt.json" },
+    tokenVariants: "all",
   },
   // ── See Complete Applications ───────────────────────────────────────────
   {
@@ -290,7 +300,7 @@ export const EXAMPLES: Example[] = [
     agent: "research-agent",
     requirements: [
       "libraos-sdk 2.0.0; reads LIBRA_OS_URL, LIBRA_OS_API_KEY and LIBRA_OS_AGENT_ID",
-      "Managed jobs route /v1/managed/agents/jobs. Current Runtime source serves it; older releases may not, so check yours. For the native HTTP route with recovery, see “HTTP Async Job & Recovery”",
+      "Managed jobs route /v1/managed/agents/jobs. Runtime v0.2.2, the version this extension pins, does not serve it (404); it needs a later release. On v0.2.2, use “HTTP Async Job & Recovery”, which uses the native job routes",
     ],
     validation: "sdk",
     main: "python/examples/08_async_job_long_running.py",
@@ -382,7 +392,7 @@ export const GUIDES = {
 
 const NEED_TEXT: Record<Need, string> = {
   setupIdentity:
-    "A setup identity that can create agents and ingest knowledge, such as the cookbook's local quickstart token. This extension's project API key cannot: it covers only model-serving and agent chat routes",
+    "A setup identity that can create agents and ingest knowledge: a setup token from this extension's Runtime (Copy Setup Token), or the cookbook's local quickstart token. The project API key cannot: it covers only model-serving and agent chat routes",
   existingAgent: "", // filled in per example, see needText
   memory: "Observational memory switched on in the Runtime (LIBRA_OS_OBSERVATIONAL_MEMORY=1)",
   documents: "Document indexing (LIBRA_OS_SUPERNOVA_ENABLED=true) and an embedding model (LIBRA_OS_EMBEDDING_API_BASE, LIBRA_OS_EMBEDDING_MODEL)",
@@ -405,9 +415,23 @@ function needText(e: Example, n: Need): string {
 // users or sign-in clients, and it gives terminals only an inference-scoped key.
 const COOKBOOK_ONLY: Need[] = ["setupIdentity", "memory", "documents", "workflows", "appMount", "callback", "twoUsers", "signIn"];
 
-export type RuntimeFit = "cookbook" | "extensionWithAgent" | "any";
+export type RuntimeFit = "setupToken" | "cookbook" | "extensionWithAgent" | "any";
+
+const TOKEN_OK: Need[] = ["setupIdentity", "existingAgent"];
+
+/**
+ * Whether this way of running the example works on the Runtime this extension
+ * manages, given a setup token in the terminal: its script reads the token
+ * from the environment and it needs nothing else that Runtime lacks.
+ */
+export function canUseSetupToken(e: Example, variant?: string): boolean {
+  if (!e.tokenVariants || !e.needs.every((n) => TOKEN_OK.includes(n))) return false;
+  if (e.tokenVariants === "all") return true;
+  return variant === undefined ? e.tokenVariants.length > 0 : e.tokenVariants.includes(variant);
+}
 
 export function runtimeFit(e: Example): RuntimeFit {
+  if (canUseSetupToken(e)) return "setupToken";
   if (e.needs.some((n) => COOKBOOK_ONLY.includes(n))) return "cookbook";
   if (e.needs.includes("existingAgent")) return "extensionWithAgent";
   return "any";
@@ -421,6 +445,11 @@ export function runtimeAdvice(e: Example): string {
         why.push("it does not set the Runtime switches, mounts, callback settings, users or sign-in clients listed above");
       if (e.needs.includes("setupIdentity")) why.push("its project API key cannot create agents or ingest knowledge");
       return `Use a Runtime configured for this example, such as the cookbook's get-started setup. The Runtime this extension manages is not: ${why.join(", and ")}.`;
+    }
+    case "setupToken": {
+      const some = e.tokenVariants !== "all" ? ` in ${(e.tokenVariants ?? []).join(", ")}; the other languages read the cookbook's get-started/.env, so they need the cookbook's Runtime` : "";
+      const agent = e.needs.includes("existingAgent") ? ` The agent “${e.agent}” must exist first: run First Agent the same way.` : "";
+      return `Runs on the Runtime this extension manages with a setup token${some}. Get Example offers a terminal with one; the cookbook's get-started Runtime also works.${agent}`;
     }
     case "extensionWithAgent":
       return `The extension's project API key can call this example's routes, but the agent “${e.agent}” must exist first, and creating it needs a setup identity. The cookbook's get-started Runtime provides one.`;
@@ -471,7 +500,7 @@ export function getExampleText(e: Example): string {
 export const SETUP_GUIDE = [
   "The Runtime this extension manages is for your own app. It runs the pinned Runtime with Postgres and your model, and gives VS Code terminals LIBRA_OS_URL and an inference-scoped project API key. That key covers model-serving routes and chat with existing agents.",
   "",
-  "Most cookbook examples need more: a setup identity that creates agents and ingests knowledge, memory or mission switches, mounted app folders, tool-callback secrets and allowed hosts, ordinary users or sign-in clients. The cookbook's get-started Compose setup provides these; the extension does not configure them and does not change its Runtime for an example.",
+  "Most cookbook examples need more. First, a setup identity that creates agents and ingests knowledge: Copy Setup Token gets one from this Runtime, valid for an hour, and Get Example offers a terminal with it for First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs. Other examples also need memory or mission switches, mounted app folders, tool-callback secrets and allowed hosts, ordinary users or sign-in clients. The cookbook's get-started Compose setup provides these; the extension does not configure them and does not change its Runtime for an example.",
   "",
   "Both default to port 8900, so stop the extension's Runtime before starting the cookbook's, or give one a different port.",
   "",

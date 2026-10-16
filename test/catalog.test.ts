@@ -11,6 +11,7 @@ import {
   findExample,
   isMultiFile,
   rawUrl,
+  canUseSetupToken,
   runtimeFit,
   tutorialUrl,
   validationText,
@@ -137,14 +138,25 @@ describe("prerequisites and runtime guidance", () => {
     for (const e of EXAMPLES.filter((x) => runtimeFit(x) === "cookbook")) {
       expect(exampleCard(e)).toContain("The Runtime this extension manages is not");
     }
-    // Every example that creates agents needs a setup identity the project key cannot provide.
-    expect(exampleCard(ex("first-agent"))).toContain("cannot create agents");
+    // The project key never stands in for a setup identity.
+    expect(exampleCard(ex("tool-calling"))).toContain("cannot create agents");
+    expect(exampleCard(ex("first-agent"))).toContain("The project API key cannot");
   });
 
-  it("lets the native async recipe use the project key once its agent exists", () => {
-    const e = ex("async-jobs");
-    expect(runtimeFit(e)).toBe("extensionWithAgent");
-    expect(exampleCard(e)).toContain("“first-assistant” must exist first");
+  it("runs on the extension's Runtime with a setup token only where the script reads it and nothing else is missing", () => {
+    expect(EXAMPLES.filter((e) => runtimeFit(e) === "setupToken").map((e) => e.id)).toEqual([
+      "first-agent",
+      "ticket-routing",
+      "document-qa",
+      "async-jobs",
+    ]);
+    expect(canUseSetupToken(ex("first-agent"), "Python")).toBe(true);
+    expect(canUseSetupToken(ex("first-agent"), "TypeScript")).toBe(false);
+    expect(canUseSetupToken(ex("first-agent"), "Bash")).toBe(false);
+    expect(canUseSetupToken(ex("memory-isolation"))).toBe(false); // memory switch and two users
+    expect(canUseSetupToken(ex("tool-calling"))).toBe(false); // mount and callback
+    expect(exampleCard(ex("first-agent"))).toContain("with a setup token in Python; the other languages read the cookbook's get-started/.env");
+    expect(exampleCard(ex("async-jobs"))).toContain("“first-assistant” must exist first: run First Agent the same way");
   });
 
   it("keeps native HTTP async recovery distinct from the SDK's managed jobs", () => {
@@ -153,6 +165,7 @@ describe("prerequisites and runtime guidance", () => {
     expect(native).toContain("Not the SDK's managed jobs client");
     const sdk = exampleCard(ex("py-async-job"));
     expect(sdk).toContain("/v1/managed/agents/jobs");
+    expect(sdk).toContain("v0.2.2, the version this extension pins, does not serve it");
     expect(sdk).toContain("HTTP Async Job & Recovery");
     for (const e of EXAMPLES) expect(exampleCard(e)).not.toMatch(/1708/);
   });
@@ -161,6 +174,7 @@ describe("prerequisites and runtime guidance", () => {
     expect(SETUP_GUIDE).toContain("Runtime v0.2.2 and libraos-sdk 2.0.0");
     expect(SETUP_GUIDE).toContain("inference-scoped project API key");
     expect(SETUP_GUIDE).toContain("does not change its Runtime for an example");
+    expect(SETUP_GUIDE).toContain("Copy Setup Token");
     expect(SETUP_GUIDE).toContain("port 8900");
   });
 });

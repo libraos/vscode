@@ -7,6 +7,7 @@ import { randomSecret, type RuntimeSecrets } from "./runtime/compose";
 const PG = "libraos.runtime.pgPassword";
 const JWT = "libraos.runtime.jwtSecret";
 const ADMIN = "libraos.runtime.adminPassword";
+const SETUP_CLIENT = "libraos.runtime.setupClientSecret";
 const MODEL_KEY = "libraos.model.apiKey";
 const CLOUD_SESSION = "libraos.cloud.session";
 
@@ -38,6 +39,7 @@ export class Secrets {
       pgPassword: await get(PG, 24),
       jwtSecret: await get(JWT, 32),
       adminPassword: await get(ADMIN, 24),
+      setupClientSecret: await get(SETUP_CLIENT, 32),
     };
   }
 
