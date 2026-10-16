@@ -21,8 +21,9 @@ steps between your editor and a running runtime.
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | Opens runnable examples from [`libraos/cookbook`](https://github.com/libraos/cookbook) and [`libraos/sdk`](https://github.com/libraos/sdk). |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
-| **Sign In / Sign Out** | Signs in to your LibraOS developer account with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
-| **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your organization's Developer Licence. The sidebar shows its status, edition and expiry. |
+| **Sign In / Sign Out** | Optional. Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits, with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
+| **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your free Developer Licence. Personal use needs no licence. |
+| **Register This Instance for Developer Benefits** | A Developer Licence benefit: registers the local runtime with your account (up to 5 benefit-registered instances), so you can see and remove them from the sidebar. |
 | **Open Console** | The LibraOS Developer Console, for keys, licences and usage. |
 
 ## Requirements
@@ -61,19 +62,42 @@ email there; LibraOS emails you a link, and approving it signs VS Code in. The
 notification can be cancelled at any time. A session lasts 24 hours; when it
 ends, the extension says you are signed out and you sign in again.
 
-**Claim Developer Licence** shows the terms summary and a link to the full
-terms, and claims only after you confirm. A licence is a record of your rights
-under the LibraOS licence terms: who claimed which edition, under which terms,
-and until when. The runtime does not check it, and there is nothing to install
-or configure. Today every self-serve claim is a 90-day organization
-evaluation; production use needs a commercial licence. Claiming again while the
-licence is active shows the same record; once an evaluation has ended,
-claiming again does not renew it.
+### Licences
+
+**Personal (default).** Personal use of LibraOS is free and needs no account
+and no licence record. The runtime never checks a licence, and nothing stops
+it from running. Signed out, or with nothing claimed, the sidebar shows
+**Licence: Personal (default)**.
+
+**Developer Licence.** Free, for one person with a LibraOS account, with no
+expiry. It covers personal use and non-production development inside an
+organization. Production use needs a commercial or small-organization licence;
+see the Licenses page in the Console. **Claim Developer Licence** shows the
+terms summary and a link to the full terms, and claims only after you confirm.
+A licence is a record of your rights, not something to install or configure.
+
+Benefits, listed under the licence in the sidebar:
+
+- **Benefit-registered instances**, up to 5. **Register This Instance for Developer Benefits** reads
+  the local runtime's installation id (a random id the runtime creates once per
+  database; the extension reads it with its own admin session to the runtime,
+  which never leaves your machine) and sends it, with a name you choose and the
+  runtime version, to the Console. Nothing is registered unless you run the
+  command, and the runtime itself never calls out. When all slots are in use,
+  the command lists them and offers to remove one; **Remove** on an
+  instance frees its slot right away. Removing a registration does not
+  affect the runtime. The id belongs to the runtime's database, not to a
+  machine: runtimes sharing a database are one instance, and a copied
+  database keeps the same id.
+- **Inference credits**: coming (see below).
+
+Organization evaluation and small-organization licence records are shown with
+their expiry when your organization holds one.
 
 **Inference credits** are managed on MegaNova. Linking a LibraOS account to a
-MegaNova account is not available yet, so the sidebar shows "Account not
-linked" with a link to the [MegaNova console](https://console.meganova.ai/home)
-and never a balance.
+MegaNova account is not available yet, so the sidebar shows them as "Coming"
+with a link to the [MegaNova console](https://console.meganova.ai/home) and
+never a balance.
 
 ## Where your secrets live
 

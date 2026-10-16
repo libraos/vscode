@@ -282,9 +282,19 @@ function toLicence(b: unknown): Licence | undefined {
   };
 }
 
+// The Developer Licence terms. A current Console lists each edition under
+// `editions`; an older one has only the top-level fields, which describe the
+// developer licence there too.
 export async function getTerms(origin: string, f: Fetch = fetch): Promise<Terms> {
   const { status, body } = await call(f, `${origin}/v1/licenses/terms`, {});
   if (status !== 200) fail("/v1/licenses/terms", status, body);
+  const editions = body.editions;
+  if (editions && typeof editions === "object" && !Array.isArray(editions)) {
+    const dev = (editions as Record<string, unknown>).developer;
+    if (dev && typeof dev === "object" && str((dev as Record<string, unknown>).terms_version)) {
+      return toTerms(dev as Record<string, unknown>);
+    }
+  }
   return toTerms(body);
 }
 
@@ -327,4 +337,91 @@ export async function grantDeveloperLicence(
     }
   }
   fail("/v1/licenses/developer/grant", status, body);
+}
+
+// ---- Installations (a Developer Licence benefit) ----------------------------
+
+export interface Installation {
+  installationId: string;
+  name: string;
+  runtimeVersion?: string;
+  registeredAt?: string;
+  lastSeenAt?: string;
+}
+
+export interface InstallationList {
+  limit: number;
+  installations: Installation[];
+}
+
+export const DEFAULT_INSTALLATION_LIMIT = 5;
+
+function toInstallation(b: unknown): Installation | undefined {
+  if (!b || typeof b !== "object") return undefined;
+  const r = b as Record<string, unknown>;
+  const id = str(r.installation_id);
+  if (!id) return undefined;
+  return {
+    installationId: id,
+    name: str(r.name) ?? id,
+    runtimeVersion: str(r.runtime_version),
+    registeredAt: str(r.registered_at),
+    lastSeenAt: str(r.last_seen_at),
+  };
+}
+
+function toInstallationList(body: Record<string, unknown>): InstallationList {
+  const list = Array.isArray(body.installations) ? body.installations : [];
+  const limit = typeof body.limit === "number" && body.limit > 0 ? body.limit : DEFAULT_INSTALLATION_LIMIT;
+  return { limit, installations: list.map(toInstallation).filter((i): i is Installation => Boolean(i)) };
+}
+
+export async function listInstallations(origin: string, token: string, f: Fetch = fetch): Promise<InstallationList> {
+  const { status, body } = await call(f, `${origin}/v1/installations`, { token });
+  if (status !== 200) fail("/v1/installations", status, body);
+  return toInstallationList(body);
+}
+
+export interface RegisterRequest {
+  installationId: string;
+  name: string;
+  runtimeVersion?: string;
+}
+
+export type RegisterResult =
+  | { kind: "registered"; installation?: Installation } // 201
+  | { kind: "updated"; installation?: Installation } // 200: already registered
+  | { kind: "developer_license_required"; message?: string } // 403
+  | { kind: "limit_reached"; limit: number; installations: Installation[]; message?: string }; // 409
+
+export async function registerInstallation(
+  origin: string,
+  token: string,
+  req: RegisterRequest,
+  f: Fetch = fetch,
+): Promise<RegisterResult> {
+  const json: Record<string, string> = { installation_id: req.installationId, name: req.name };
+  if (req.runtimeVersion) json.runtime_version = req.runtimeVersion;
+  const { status, body } = await call(f, `${origin}/v1/installations`, { method: "POST", token, json });
+  if (status === 200 || status === 201) {
+    return { kind: status === 201 ? "registered" : "updated", installation: toInstallation(body) };
+  }
+  const code = str(body.error);
+  if (status === 403 && code === "developer_license_required") {
+    return { kind: "developer_license_required", message: str(body.message) };
+  }
+  if (status === 409 && code === "installation_limit_reached") {
+    return { kind: "limit_reached", ...toInstallationList(body), message: str(body.message) };
+  }
+  fail("/v1/installations", status, body);
+}
+
+// Removes a registered installation. False when it was not registered (404),
+// which leaves the same outcome.
+export async function removeInstallation(origin: string, token: string, installationId: string, f: Fetch = fetch): Promise<boolean> {
+  const path = `/v1/installations/${encodeURIComponent(installationId)}`;
+  const { status, body } = await call(f, `${origin}${path}`, { method: "DELETE", token });
+  if (status === 204 || status === 200) return true;
+  if (status === 404) return false;
+  fail("/v1/installations/{id}", status, body);
 }

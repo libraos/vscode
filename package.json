@@ -1,8 +1,8 @@
 {
   "name": "libraos",
-  "displayName": "LibraOS \u2014 AI Runtime for VS Code",
+  "displayName": "LibraOS — AI Runtime for VS Code",
   "description": "Install, run and integrate the LibraOS Runtime into your existing app, from VS Code.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "preview": true,
   "publisher": "libraos",
   "license": "MIT",
@@ -37,7 +37,7 @@
         {
           "id": "libraos",
           "title": "LibraOS",
-          "icon": "media/libraos.png"
+          "icon": "media/libraos.svg"
         }
       ]
     },
@@ -76,6 +76,17 @@
         "command": "libraos.claimLicence",
         "title": "Claim Developer Licence",
         "category": "LibraOS"
+      },
+      {
+        "command": "libraos.registerInstallation",
+        "title": "Register This Instance for Developer Benefits",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.removeInstallation",
+        "title": "Remove Benefit-Registered Instance",
+        "category": "LibraOS",
+        "icon": "$(trash)"
       },
       {
         "command": "libraos.openConsole",
@@ -148,6 +159,13 @@
           "command": "libraos.openExample",
           "when": "false"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "libraos.removeInstallation",
+          "when": "view == libraos.workspace && viewItem == libraos.installation",
+          "group": "inline"
+        }
       ]
     },
     "configuration": {
@@ -170,7 +188,7 @@
         "libraos.runtime.image": {
           "type": "string",
           "default": "ghcr.io/libraos/libraos:v0.2.2@sha256:0ccb121cd5760af47a91c491010a63123030533ebe516bd732d94a0575dccdc2",
-          "description": "Runtime container image. Pin a digest (@sha256:\u2026) so Docker verifies what it pulls."
+          "description": "Runtime container image. Pin a digest (@sha256:…) so Docker verifies what it pulls."
         },
         "libraos.model.baseUrl": {
           "type": "string",

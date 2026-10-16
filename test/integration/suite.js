@@ -6,6 +6,8 @@ const COMMANDS = [
   "libraos.signIn",
   "libraos.signOut",
   "libraos.claimLicence",
+  "libraos.registerInstallation",
+  "libraos.removeInstallation",
   "libraos.openConsole",
   "libraos.configureModel",
   "libraos.installRuntime",
@@ -45,12 +47,14 @@ exports.run = async function run() {
   const developer = (await api.tree.getChildren((await api.tree.getChildren())[0])).map(
     (n) => `${n.label}${n.description ? ` = ${n.description}` : ""}`,
   );
-  assert.deepStrictEqual(developer, [
-    "Sign In = Not signed in",
-    "Licence = Sign in to see it",
-    "Inference Credits = Account not linked",
-    "Open Console",
-  ]);
+  assert.deepStrictEqual(developer, ["Sign In = Optional: Developer Licence benefits", "Licence = Personal (default)", "Open Console"]);
+  const personal = (await api.tree.getChildren((await api.tree.getChildren())[0]))[1];
+  assert.match(String(personal.tooltip), /never checks a licence/, "Personal explains the runtime never checks a licence");
+  const inline = ext.packageJSON.contributes.menus["view/item/context"];
+  assert.ok(
+    inline.some((m) => m.command === "libraos.removeInstallation" && m.when.includes("viewItem == libraos.installation")),
+    "registered installations have a Remove action",
+  );
   assert.strictEqual(api.account.state.signedIn, false, "a fresh install is signed out");
   console.log("integration: ok —", COMMANDS.length, "commands, activation on view open");
 };

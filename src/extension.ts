@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
 import { Secrets } from "./secrets";
 import { RuntimeManager } from "./runtime/manager";
-import { adminToken, mintServiceKey } from "./runtime/api";
+import * as os from "node:os";
+import { adminToken, getInstallation, mintServiceKey } from "./runtime/api";
 import { ADMIN_EMAIL } from "./runtime/compose";
 import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
@@ -9,6 +10,7 @@ import { EXAMPLES, rawUrl, webUrl } from "./examples/catalog";
 import { listModels, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
+import { defaultInstallationName } from "./cloud/installations";
 
 const MEGANOVA = "https://api.meganova.ai";
 
@@ -16,7 +18,17 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
   const output = vscode.window.createOutputChannel("LibraOS");
   const secrets = new Secrets(ctx.secrets);
   const runtime = new RuntimeManager(ctx, secrets, output);
-  const account = new CloudAccount(secrets, output);
+  // Reads the local runtime's installation id with the extension's own admin
+  // session to it. That session is used only against 127.0.0.1.
+  const account = new CloudAccount(secrets, output, {
+    installation: async () => {
+      if (runtime.status !== "running" || !(await secrets.hasRuntime())) return "not_running";
+      const rs = await secrets.runtime();
+      const token = await adminToken(runtime.baseUrl, ADMIN_EMAIL, rs.adminPassword);
+      return getInstallation(runtime.baseUrl, token);
+    },
+    defaultName: () => defaultInstallationName(vscode.workspace.workspaceFolders?.[0]?.name, os.hostname()),
+  });
 
   const projectState = async () => {
     const folder = vscode.workspace.workspaceFolders?.[0];
@@ -81,6 +93,8 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
   cmd("libraos.signIn", () => account.signIn());
   cmd("libraos.signOut", () => account.signOut());
   cmd("libraos.claimLicence", () => account.claimLicence());
+  cmd("libraos.registerInstallation", () => account.registerInstallation());
+  cmd("libraos.removeInstallation", (item?: unknown) => account.removeInstallation(item));
 
   cmd("libraos.openConsole", () => vscode.env.openExternal(vscode.Uri.parse(consoleUrl())));
 
