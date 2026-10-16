@@ -13,8 +13,8 @@ function fakeFetch(routes: Record<string, { status: number; body: unknown }>, se
 
 describe("health", () => {
   it("reports ok and the runtime version", async () => {
-    const f = fakeFetch({ "/health": { status: 200, body: {} }, "/api/version": { status: 200, body: { nova_os_version: "v0.2.1" } } });
-    expect(await health("http://x", f)).toEqual({ ok: true, version: "v0.2.1" });
+    const f = fakeFetch({ "/health": { status: 200, body: {} }, "/api/version": { status: 200, body: { nova_os_version: "v0.2.2" } } });
+    expect(await health("http://x", f)).toEqual({ ok: true, version: "v0.2.2" });
   });
 
   it("reports not ok when unreachable", async () => {

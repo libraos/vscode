@@ -12,7 +12,7 @@ import {
 } from "../src/runtime/compose";
 
 const settings = (mode: NetworkMode) => ({
-  image: "ghcr.io/libraos/libraos:v0.2.1@sha256:" + "a".repeat(64),
+  image: "ghcr.io/libraos/libraos:v0.2.2@sha256:" + "a".repeat(64),
   port: 8911,
   pgPort: 55432,
   mode,

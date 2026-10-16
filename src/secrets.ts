@@ -8,6 +8,17 @@ const PG = "libraos.runtime.pgPassword";
 const JWT = "libraos.runtime.jwtSecret";
 const ADMIN = "libraos.runtime.adminPassword";
 const MODEL_KEY = "libraos.model.apiKey";
+const CLOUD_SESSION = "libraos.cloud.session";
+
+// A Developer Console session: the bearer token, when it ends, the account it
+// names, and the Console origin that issued it (it is never sent elsewhere).
+export interface StoredSession {
+  origin: string;
+  token: string;
+  expiresAt: number;
+  email?: string;
+  workspace?: string;
+}
 
 export class Secrets {
   constructor(private readonly store: vscode.SecretStorage) {}
@@ -41,6 +52,22 @@ export class Secrets {
   async setModelKey(v: string | undefined): Promise<void> {
     if (v) await this.store.store(MODEL_KEY, v);
     else await this.store.delete(MODEL_KEY);
+  }
+
+  async cloudSession(): Promise<StoredSession | undefined> {
+    const raw = await this.store.get(CLOUD_SESSION);
+    if (!raw) return undefined;
+    try {
+      const v = JSON.parse(raw) as StoredSession;
+      return typeof v.token === "string" && typeof v.origin === "string" ? v : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async setCloudSession(v: StoredSession | undefined): Promise<void> {
+    if (v) await this.store.store(CLOUD_SESSION, JSON.stringify(v));
+    else await this.store.delete(CLOUD_SESSION);
   }
 
   projectKey(folder: vscode.Uri): Thenable<string | undefined> {
