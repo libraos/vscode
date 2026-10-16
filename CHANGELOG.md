@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 (preview)
+
+- **Icons show up.** Both icons had a solid white background. The activity bar uses an icon's transparency as a mask, so it showed a plain square instead of the logo, and the Extensions view showed the logo on a white tile. The extension icon is now the LibraOS mark on a transparent background, and the activity bar uses the monochrome mark as an SVG, so it takes the theme's colour.
+
 ## 0.2.0 (preview)
 
 - **Sign In / Sign Out** to your LibraOS developer account with device sign-in: a one-time code, approved in the browser through a link emailed to you. VS Code never asks for a password. The session token is kept only in SecretStorage and sent only to the configured Console; an ended session (24 hours) signs you out with a notice.
