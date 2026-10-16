@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.1 (preview)
 
 - **Cookbook v2 navigation.** Browse Cookbook and the sidebar's Examples follow the cookbook's learning paths: **Learn Step by Step** (L1 to L4), **Explore by Capability** (Knowledge, Tools, Memory, Async) and **See Complete Applications**, with SDK examples listed separately. New entries: Python First Agent, Tools: Order Lookup, Memory: User Isolation, HTTP Async Job & Recovery, Personal Assistant, Marketing Team and Mission Console.
 - **What an example needs, before it opens.** Choosing an example shows its language and SDK versions, Runtime switches, mounted app folders, callback setup, users or sign-in clients, which Runtime to run it on, and its validation status. A listing is not a compatibility certification.
