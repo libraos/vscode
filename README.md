@@ -20,6 +20,7 @@ steps between your editor and a running runtime.
 | **Run / Stop Local Runtime** | Starts and stops the runtime, with its health in the status bar. |
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | The [`libraos/cookbook`](https://github.com/libraos/cookbook) learning paths and [`libraos/sdk`](https://github.com/libraos/sdk) examples, with what each one needs before it runs. See [Cookbook examples](#cookbook-examples). |
+| **Copy Setup Token** | A one-hour admin token for the local runtime, for cookbook examples that create agents or ingest documents. See [Setup token](#setup-token). |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
 | **Sign In / Sign Out** | Optional. Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits, with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
 | **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your free Developer Licence. Personal use needs no licence. |
@@ -96,6 +97,27 @@ Needs** shows its language and SDK versions, Runtime switches, mounted app
 folders, tool-callback setup, users or sign-in clients, and how far it has been
 validated. **Open Tutorial** opens its README on GitHub. **View Example on
 GitHub** opens its source there.
+
+### Setup token
+
+The project API key can call models and chat with agents that already exist,
+but the runtime refuses it for creating agents, ingesting documents or
+importing bundles (`403 api_key_scope`). Most cookbook examples start by
+creating an agent, so they need a setup identity. **Copy Setup Token** (in the
+Runtime section while it runs) gets one from the local runtime:
+
+- It is an admin token for the runtime on this machine, minted by a
+  laptop-only service client whose secret stays in SecretStorage. It expires
+  after an hour. Keep it on this machine.
+- **Open Terminal** puts it in `LIBRA_OS_SETUP_TOKEN` for that terminal only.
+  Run a command with it as `LIBRA_OS_API_KEY="$LIBRA_OS_SETUP_TOKEN" <command>`.
+  It is passed this way because VS Code gives the extension's
+  `LIBRA_OS_API_KEY` (your project key) precedence in project windows.
+- **Get Example** offers **Run on This Extension's Runtime** for the examples
+  that can use it: First Agent in Python, Ticket Routing, Document Q&A and
+  HTTP Async Jobs. It opens a terminal with the token and the command typed.
+- A runtime started by an earlier version of the extension has no setup client
+  yet; the command offers to restart it. Its data is kept.
 
 ### Which Runtime to run them on
 

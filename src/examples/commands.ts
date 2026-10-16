@@ -15,6 +15,7 @@ import {
   fileWebUrl,
   findExample,
   isMultiFile,
+  canUseSetupToken,
   isPythonCommand,
   localFolderName,
   pythonRequirements,
@@ -83,10 +84,18 @@ export interface PrepareResult {
   python?: string;
 }
 
+/** What the examples need from the Runtime this extension manages. */
+export interface LocalRuntime {
+  runtimeRunning(): boolean;
+  /** Opens a terminal with a setup token and `command` typed; false if no token was available. */
+  openTokenTerminal(name: string, cwd: string, command: string): Promise<boolean>;
+}
+
 class Examples {
   constructor(
     private readonly ctx: vscode.ExtensionContext,
     private readonly output: vscode.OutputChannel,
+    private readonly local?: LocalRuntime,
   ) {}
 
   // ── Browse ──────────────────────────────────────────────────────────────
@@ -367,19 +376,41 @@ class Examples {
     // Typed, not run: the README lists what has to be in place first.
     terminal.sendText(runLine(r.command, r.python ?? "python", process.platform), false);
 
-    // Cookbook examples read the local Runtime's settings from get-started/.env.
-    // Without it the first run stops with a KeyError, so offer the template.
+    // Two ways to give the example a setup identity: a setup token from the
+    // Runtime this extension manages, for scripts that read it from the
+    // environment, or the cookbook's own Runtime, configured in get-started/.env.
+    const RUN_HERE = "Run on This Extension's Runtime";
+    const CREATE_ENV = "Create get-started/.env";
+    const tokenOk = canUseSetupToken(e, r.variant) && !!this.local;
     const envFile = path.join(r.root, "get-started", ".env");
     const envTemplate = path.join(r.root, "get-started", ".env.example");
     const needsEnv = e.repo === "cookbook" && e.needs.includes("setupIdentity") && !(await exists(envFile)) && (await exists(envTemplate));
-    const actions = needsEnv ? ["Create get-started/.env", "What It Needs"] : ["What It Needs"];
-    const message = needsEnv
-      ? `“${e.title}” is open. It runs against the cookbook's local Runtime, which reads get-started/.env, and that file does not exist yet.`
-      : `“${e.title}” is open. The command is typed in the terminal; check the README's setup first.`;
+    const actions = [...(tokenOk ? [RUN_HERE] : []), ...(needsEnv ? [CREATE_ENV] : []), "What It Needs"];
+    const message = tokenOk
+      ? `“${e.title}” is open. It needs a setup token: run it on the Runtime this extension manages, or on the cookbook's own Runtime with get-started/.env.`
+      : needsEnv
+        ? `“${e.title}” is open. It runs against the cookbook's local Runtime, which reads get-started/.env, and that file does not exist yet.`
+        : `“${e.title}” is open. The command is typed in the terminal; check the README's setup first.`;
     void vscode.window.showInformationMessage(message, ...actions).then(async (choice) => {
       if (choice === "What It Needs") await this.showCard(e.id);
-      if (choice === "Create get-started/.env") await this.createEnv(envTemplate, envFile, r.root);
+      if (choice === CREATE_ENV) await this.createEnv(envTemplate, envFile, r.root);
+      if (choice === RUN_HERE) await this.runHere(e, r);
     });
+  }
+
+  // Replaces the plain terminal with one that has a setup token for the
+  // Runtime this extension manages, with the same command typed.
+  private async runHere(e: Example, r: PrepareResult): Promise<void> {
+    if (!this.local) return;
+    if (!this.local.runtimeRunning()) {
+      const pick = await vscode.window.showWarningMessage("LibraOS: the Runtime this extension manages is not running.", "Run Local Runtime");
+      if (pick) await vscode.commands.executeCommand("libraos.startRuntime");
+      if (!this.local.runtimeRunning()) return;
+    }
+    const command = runLine(r.command, r.python ?? "python", process.platform);
+    if (await this.local.openTokenTerminal(`LibraOS: ${e.title}`, r.runCwd, command)) {
+      for (const t of vscode.window.terminals) if (t.name === `LibraOS: ${e.title}`) t.dispose();
+    }
   }
 
   // Copies the cookbook's template; the secrets in it are filled in by the
@@ -441,8 +472,8 @@ export interface ExamplesApi {
   open(id: string, r: PrepareResult): Promise<void>;
 }
 
-export function registerExampleCommands(ctx: vscode.ExtensionContext, output: vscode.OutputChannel): ExamplesApi {
-  const x = new Examples(ctx, output);
+export function registerExampleCommands(ctx: vscode.ExtensionContext, output: vscode.OutputChannel, local?: LocalRuntime): ExamplesApi {
+  const x = new Examples(ctx, output, local);
   const reg = (id: string, fn: (...args: any[]) => unknown) => ctx.subscriptions.push(vscode.commands.registerCommand(id, fn));
   reg("libraos.browseExamples", () => x.browse());
   // Clicking an example in the sidebar gets it; the inline buttons and the

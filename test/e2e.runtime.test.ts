@@ -10,8 +10,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
-import { composeEnv, composeFile, networkModeFor, randomSecret } from "../src/runtime/compose";
-import { adminToken, health, mintServiceKey, runtimeUrl } from "../src/runtime/api";
+import { SETUP_CLIENT_ID, composeEnv, composeFile, networkModeFor, randomSecret } from "../src/runtime/compose";
+import { adminToken, health, mintServiceKey, runtimeUrl, setupToken } from "../src/runtime/api";
 import { run } from "../src/runtime/docker";
 import { projectTemplate } from "../src/project/detect";
 
@@ -32,6 +32,7 @@ describe.skipIf(!enabled)("local runtime end to end", () => {
     pgPassword: randomSecret(24, randomBytes),
     jwtSecret: randomSecret(32, randomBytes),
     adminPassword: randomSecret(24, randomBytes),
+    setupClientSecret: randomSecret(32, randomBytes),
   };
   const env = composeEnv(
     {
@@ -74,6 +75,53 @@ describe.skipIf(!enabled)("local runtime end to end", () => {
     expect(key.secret).toBeTruthy();
     apiKey = key.secret;
   }, 30_000);
+
+  const createAgent = (token: string, name: string) =>
+    fetch(`${base}/v1/agents`, {
+      method: "POST",
+      // The version header the SDK and the cookbook's examples send.
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}`, "anthropic-beta": "managed-agents-2026-04-01" },
+      body: JSON.stringify({ name, agent_type: "persona", tool_scope: "none", system: "Reply briefly." }),
+    });
+
+  it("the project key cannot create agents, which is why examples need a setup token", async () => {
+    const r = await createAgent(apiKey, "e2e-denied");
+    expect(r.status).toBe(403);
+    expect(await r.text()).toMatch(/api_key_scope/);
+  }, 30_000);
+
+  it("a setup token from the setup client creates agents and expires in about an hour", async () => {
+    const t = await setupToken(base, SETUP_CLIENT_ID, secrets.setupClientSecret);
+    const minutes = (t.expiresAt - Date.now()) / 60000;
+    expect(minutes).toBeGreaterThan(55);
+    expect(minutes).toBeLessThanOrEqual(60);
+    const r = await createAgent(t.token, "e2e-setup-token");
+    expect([200, 201]).toContain(r.status);
+  }, 30_000);
+
+  it("a wrong setup secret gets no token", async () => {
+    await expect(setupToken(base, SETUP_CLIENT_ID, "wrong")).rejects.toThrow();
+  }, 30_000);
+
+  // The cookbook's Python First Agent with the token mapped to LIBRA_OS_API_KEY,
+  // as Get Example's terminal does. Needs LIBRAOS_E2E_COOKBOOK_PYTHON (a Python
+  // with libraos-sdk) and LIBRAOS_E2E_COOKBOOK (a cookbook checkout).
+  it.skipIf(!process.env.LIBRAOS_E2E_COOKBOOK || !process.env.LIBRAOS_E2E_COOKBOOK_PYTHON || !process.env.LIBRAOS_E2E_MODEL_KEY)(
+    "the cookbook's Python First Agent runs with a setup token",
+    async () => {
+      const t = await setupToken(base, SETUP_CLIENT_ID, secrets.setupClientSecret);
+      const out = execFileSync(process.env.LIBRAOS_E2E_COOKBOOK_PYTHON!, ["first-agent.py"], {
+        cwd: join(process.env.LIBRAOS_E2E_COOKBOOK!, "get-started", "01-first-agent"),
+        env: { PATH: process.env.PATH, HOME: process.env.HOME, LIBRA_OS_URL: base, LIBRA_OS_API_KEY: t.token },
+        encoding: "utf8",
+        timeout: 240_000,
+      });
+      console.log("first-agent.py:", out.trim().slice(0, 300));
+      expect(out).toContain("create agent: ok");
+      expect(out).toMatch(/agent: .+/);
+    },
+    260_000,
+  );
 
   for (const [kind, cmd] of [
     ["javascript", ["node"]],

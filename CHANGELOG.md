@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **Copy Setup Token.** The project API key cannot create agents or ingest documents, so most cookbook examples failed against the Runtime this extension manages (`403 api_key_scope`). Copy Setup Token gets a one-hour admin token from the local Runtime, minted by a laptop-only service client whose secret stays in SecretStorage. **Open Terminal** puts it in `LIBRA_OS_SETUP_TOKEN` for that terminal; run a command with `LIBRA_OS_API_KEY="$LIBRA_OS_SETUP_TOKEN" <command>`. A Runtime started by an earlier version offers a restart to add the client; its data is kept.
+- **Get Example: Run on This Extension's Runtime.** For First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs, Get Example offers a terminal with a setup token and the command typed, so they run without the cookbook's own Runtime.
+- **Personal licence first.** Signed out, the Developer section lists **Licence: Personal (default)** first, then the optional **Sign In** for the Developer Licence.
+
 ## 0.3.2 (preview)
 
 - **Get Example: examples open and run in VS Code.** Clicking an example downloads it from GitHub into a local folder you choose: the whole cookbook once, into `libraos-cookbook`, so files shared between examples are in place, and only the needed files for SDK examples. It then opens the source file from disk with its README beside it, and a terminal with the run command typed in but not run. In 0.3.1, most examples opened only on GitHub, and single-file examples opened as unsaved buffers that VS Code's Run button could not run.

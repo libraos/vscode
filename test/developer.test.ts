@@ -66,12 +66,12 @@ const find = (rows: Row[], label: string): Row | undefined => {
 
 describe("licence display", () => {
   it("signed out: Personal (default), with what it means", () => {
-    expect(show({ signedIn: false })).toEqual(["Sign In = Optional: Developer Licence benefits", "Licence = Personal (default)", "Open Console"]);
+    expect(show({ signedIn: false })).toEqual(["Licence = Personal (default)", "Sign In = Optional: Developer Licence benefits", "Open Console"]);
     const rows = developerRows({ signedIn: false });
-    expect(rows[0].command?.id).toBe("libraos.signIn");
-    expect(rows[1].tooltip).toMatch(/free/);
-    expect(rows[1].tooltip).toMatch(/no account/);
-    expect(rows[1].tooltip).toMatch(/never checks a licence/);
+    expect(rows[1].command?.id).toBe("libraos.signIn");
+    expect(rows[0].tooltip).toMatch(/free/);
+    expect(rows[0].tooltip).toMatch(/no account/);
+    expect(rows[0].tooltip).toMatch(/never checks a licence/);
   });
 
   it("signed in, nothing held: Personal (default) and the free claim", () => {

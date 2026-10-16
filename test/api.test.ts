@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminToken, getInstallation, health, mintServiceKey, RuntimeApiError } from "../src/runtime/api";
+import { adminToken, getInstallation, health, mintServiceKey, RuntimeApiError, SetupClientMissing, setupToken } from "../src/runtime/api";
 
 function fakeFetch(routes: Record<string, { status: number; body: unknown }>, seen: Request[] = []) {
   return (async (input: string | URL | Request, init?: RequestInit) => {
@@ -73,5 +73,33 @@ describe("getInstallation", () => {
   it("refuses a response without an id", async () => {
     const f = fakeFetch({ "/v1/managed/installation": { status: 200, body: {} } });
     await expect(getInstallation("http://x", "t", f)).rejects.toThrow(/no installation_id/);
+  });
+});
+
+describe("setupToken", () => {
+  const reply = (status: number, body: unknown) => (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+
+  it("exchanges the setup client's secret for a token with its expiry", async () => {
+    let sent: { url: string; body: Record<string, unknown> } | undefined;
+    const f = (async (url: string, init: RequestInit) => {
+      sent = { url, body: JSON.parse(String(init.body)) };
+      return new Response(JSON.stringify({ access_token: "tok", expires_in: 3600 }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const t = await setupToken("http://127.0.0.1:8900", "vscode-setup", "s", f, () => 1000);
+    expect(t).toEqual({ token: "tok", expiresAt: 1000 + 3600 * 1000 });
+    expect(sent).toEqual({
+      url: "http://127.0.0.1:8900/oauth/token",
+      body: { grant_type: "client_credentials", client_id: "vscode-setup", client_secret: "s" },
+    });
+  });
+
+  it("recognises a runtime started without the setup client", async () => {
+    await expect(setupToken("http://x", "c", "s", reply(400, { error: "unsupported_grant_type" }))).rejects.toBeInstanceOf(SetupClientMissing);
+    await expect(setupToken("http://x", "c", "s", reply(401, { error: "invalid_client" }))).rejects.toBeInstanceOf(SetupClientMissing);
+  });
+
+  it("reports other failures and empty tokens", async () => {
+    await expect(setupToken("http://x", "c", "s", reply(500, {}))).rejects.toThrow(/HTTP 500/);
+    await expect(setupToken("http://x", "c", "s", reply(200, {}))).rejects.toThrow(/no token/);
   });
 });

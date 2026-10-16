@@ -7,6 +7,7 @@ import { ADMIN_EMAIL } from "./runtime/compose";
 import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
 import { registerExampleCommands, type ExamplesApi } from "./examples/commands";
+import { SetupTokens } from "./runtime/setupToken";
 import { listModels, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
@@ -306,7 +307,17 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     void vscode.window.showInformationMessage("Project API key copied. Don't commit it.");
   });
 
-  const examples = registerExampleCommands(ctx, output);
+  const tokens = new SetupTokens(runtime, secrets, output);
+  cmd("libraos.copySetupToken", () => tokens.command());
+  const examples = registerExampleCommands(ctx, output, {
+    runtimeRunning: () => runtime.status === "running",
+    openTokenTerminal: async (name, cwd, command) => {
+      const token = await tokens.get();
+      if (!token) return false;
+      tokens.terminal(token, { name, cwd, command });
+      return true;
+    },
+  });
 
   ctx.subscriptions.push(
     output,

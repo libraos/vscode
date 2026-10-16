@@ -255,8 +255,11 @@ function licenceRows(s: Extract<DeveloperState, { signedIn: true }>): Row[] {
 export function developerRows(s: DeveloperState): Row[] {
   const openConsole: Row = { label: "Open Console", icon: "link-external", command: { id: "libraos.openConsole" } };
 
+  // Personal is the licence everyone has; signing in for the optional
+  // Developer Licence comes after it.
   if (!s.signedIn) {
     return [
+      ...personalRows(false),
       {
         label: "Sign In",
         description: "Optional: Developer Licence benefits",
@@ -264,7 +267,6 @@ export function developerRows(s: DeveloperState): Row[] {
         tooltip: "Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits.",
         command: { id: "libraos.signIn" },
       },
-      ...personalRows(false),
       openConsole,
     ];
   }

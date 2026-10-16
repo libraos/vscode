@@ -2,6 +2,11 @@
 // Docker Compose. Pure functions only, so they can be tested without VS Code.
 
 export const COMPOSE_PROJECT = "libraos-vscode";
+
+// The laptop-only service client behind "Copy Setup Token". Its secret comes
+// from SecretStorage like the other runtime secrets; tokens it mints are
+// admin tokens that expire after the runtime's access-token lifetime (1 h).
+export const SETUP_CLIENT_ID = "vscode-setup";
 export const ADMIN_EMAIL = "admin@libraos.local";
 
 // pgvector ≥ 0.8 is required by the runtime's knowledge store. Pinned by
@@ -64,6 +69,7 @@ ${listen}      LIBRA_OS_DATABASE_URL: postgresql://libraos:\${LIBRAOS_PG_PASSWOR
       LIBRA_OS_JWT_SECRET: \${LIBRA_OS_JWT_SECRET:?missing}
       LIBRA_OS_ADMIN_EMAIL: \${LIBRA_OS_ADMIN_EMAIL:?missing}
       LIBRA_OS_ADMIN_PASSWORD: \${LIBRA_OS_ADMIN_PASSWORD:?missing}
+      LIBRA_OS_SERVICE_CLIENTS: ${SETUP_CLIENT_ID}:admin=\${LIBRAOS_SETUP_CLIENT_SECRET:?missing}
       LIBRA_OS_PUBLIC_URL: http://localhost:\${LIBRAOS_PORT:-8900}
       OPENAI_API_BASE: \${OPENAI_API_BASE:?missing}
       OPENAI_API_KEY: \${OPENAI_API_KEY:-local}
@@ -89,6 +95,7 @@ export interface RuntimeSecrets {
   pgPassword: string;
   jwtSecret: string;
   adminPassword: string;
+  setupClientSecret: string;
 }
 
 export interface RuntimeSettings {
@@ -113,6 +120,7 @@ export function composeEnv(s: RuntimeSettings, sec: RuntimeSecrets): Record<stri
     LIBRA_OS_JWT_SECRET: sec.jwtSecret,
     LIBRA_OS_ADMIN_EMAIL: ADMIN_EMAIL,
     LIBRA_OS_ADMIN_PASSWORD: sec.adminPassword,
+    LIBRAOS_SETUP_CLIENT_SECRET: sec.setupClientSecret,
     OPENAI_API_BASE: containerModelUrl(s.modelBaseUrl, s.mode),
     OPENAI_API_KEY: s.modelApiKey || "local",
     LIBRAOS_MODEL: s.modelName,
