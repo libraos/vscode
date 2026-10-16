@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Cookbook v2 navigation.** Browse Cookbook and the sidebar's Examples follow the cookbook's learning paths: **Learn Step by Step** (L1 to L4), **Explore by Capability** (Knowledge, Tools, Memory, Async) and **See Complete Applications**, with SDK examples listed separately. New entries: Python First Agent, Tools: Order Lookup, Memory: User Isolation, HTTP Async Job & Recovery, Personal Assistant, Marketing Team and Mission Console.
+- **What an example needs, before it opens.** Choosing an example shows its language and SDK versions, Runtime switches, mounted app folders, callback setup, users or sign-in clients, which Runtime to run it on, and its validation status. A listing is not a compatibility certification.
+- **Open Tutorial** opens the example's README. **View Source** opens a single-file example in an editor, and the repository folder for an example with several files. Both are inline buttons in the sidebar and commands in the Command Palette.
+- **Cookbook Setup or This Runtime?** explains when to use the cookbook's get-started setup instead of the Runtime the extension manages. The extension's Runtime and its configuration are unchanged.
+
 ## 0.3.0 (preview)
 
 - **Personal is the default.** Signed out, or signed in with no licence record, the sidebar shows **Licence: Personal (default)**. Personal use is free, needs no account, and the runtime never checks a licence. Wording that suggested a licence was needed to use the runtime is gone. **Sign In is optional**: it is only for claiming the free Developer Licence and its benefits.

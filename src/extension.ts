@@ -6,7 +6,7 @@ import { adminToken, getInstallation, mintServiceKey } from "./runtime/api";
 import { ADMIN_EMAIL } from "./runtime/compose";
 import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
-import { EXAMPLES, rawUrl, webUrl } from "./examples/catalog";
+import { registerExampleCommands } from "./examples/commands";
 import { listModels, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
@@ -306,27 +306,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     void vscode.window.showInformationMessage("Project API key copied. Don't commit it.");
   });
 
-  cmd("libraos.browseExamples", async () => {
-    const pick = await vscode.window.showQuickPick(
-      EXAMPLES.map((e) => ({ label: e.title, description: e.description, detail: `libraos/${e.repo} · ${e.path}`, id: e.id })),
-      { title: "LibraOS Cookbook", matchOnDescription: true, matchOnDetail: true },
-    );
-    if (pick) await vscode.commands.executeCommand("libraos.openExample", pick.id);
-  });
-
-  cmd("libraos.openExample", async (id: string) => {
-    const e = EXAMPLES.find((x) => x.id === id);
-    if (!e) return;
-    try {
-      const r = await fetch(rawUrl(e), { signal: AbortSignal.timeout(15000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const doc = await vscode.workspace.openTextDocument({ content: await r.text(), language: e.languageId });
-      await vscode.window.showTextDocument(doc);
-    } catch (err) {
-      const pick = await vscode.window.showErrorMessage(`Could not fetch the example: ${String(err)}`, "Open on GitHub");
-      if (pick) void vscode.env.openExternal(vscode.Uri.parse(webUrl(e)));
-    }
-  });
+  registerExampleCommands(ctx);
 
   ctx.subscriptions.push(
     output,

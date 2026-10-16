@@ -18,6 +18,10 @@ const COMMANDS = [
   "libraos.copyApiKey",
   "libraos.browseExamples",
   "libraos.openExample",
+  "libraos.openExampleTutorial",
+  "libraos.viewExampleSource",
+  "libraos.openLearningPaths",
+  "libraos.cookbookSetupGuide",
   "libraos.cloudDeploy",
 ];
 
@@ -55,6 +59,27 @@ exports.run = async function run() {
     inline.some((m) => m.command === "libraos.removeInstallation" && m.when.includes("viewItem == libraos.installation")),
     "registered installations have a Remove action",
   );
+  // Examples follow the cookbook's learning paths, and each example offers
+  // its tutorial and source inline.
+  const examples = await api.tree.getChildren((await api.tree.getChildren())[3]);
+  assert.deepStrictEqual(examples.map((n) => n.label), [
+    "Learn Step by Step",
+    "Explore by Capability",
+    "See Complete Applications",
+    "SDK Examples",
+    "Learning Paths",
+    "Cookbook Setup or This Runtime?",
+  ]);
+  const learn = await api.tree.getChildren(examples[0]);
+  assert.deepStrictEqual(learn.slice(0, 2).map((n) => `${n.label} = ${n.description}`), ["First Agent = L1", "Ticket Routing = L1"]);
+  assert.ok(learn.every((n) => n.contextValue === "libraos.example" && n.command.command === "libraos.openExample"));
+  const capability = (await api.tree.getChildren(examples[1])).map((n) => n.description);
+  assert.deepStrictEqual(capability, ["Knowledge", "Tools", "Memory", "Async"]);
+  const apps = (await api.tree.getChildren(examples[2])).map((n) => n.label);
+  assert.deepStrictEqual(apps, ["Personal Assistant", "Marketing Team", "Mission Console"]);
+  for (const c of ["libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
+    assert.ok(inline.some((m) => m.command === c && m.when.includes("viewItem == libraos.example")), `examples have an inline ${c}`);
+  }
   assert.strictEqual(api.account.state.signedIn, false, "a fresh install is signed out");
   console.log("integration: ok —", COMMANDS.length, "commands, activation on view open");
 };

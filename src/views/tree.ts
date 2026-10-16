@@ -1,9 +1,32 @@
 import * as vscode from "vscode";
 import type { RuntimeManager } from "../runtime/manager";
-import { EXAMPLES } from "../examples/catalog";
+import { PATHS, badge, examplesFor, type Example, type PathId } from "../examples/catalog";
 import { developerRows, type DeveloperState, type Row } from "./developer";
 
 type Node = vscode.TreeItem & { children?: Node[]; arg?: unknown };
+
+const PATH_ICON: Record<PathId, string> = { learn: "mortar-board", capability: "extensions", apps: "window", sdk: "package" };
+
+function group(label: string, icon: string, tooltip: string, children: Node[]): Node {
+  const n: Node = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Collapsed);
+  n.iconPath = new vscode.ThemeIcon(icon);
+  n.tooltip = tooltip;
+  n.children = children;
+  return n;
+}
+
+// Clicking an example shows what it needs before anything opens; the inline
+// buttons go straight to its tutorial or source.
+function exampleNode(e: Example, path: PathId): Node {
+  const n = action(e.title, "libraos.openExample", e.files?.length ? "file-code" : "file-directory", [e.id], badge(e, path)) as Node & {
+    exampleId: string;
+  };
+  n.exampleId = e.id;
+  n.tooltip = e.description;
+  n.contextValue = "libraos.example";
+  n.id = `example:${path}:${e.id}`;
+  return n;
+}
 
 function section(label: string, icon: string, children: Node[]): Node {
   const n: Node = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Expanded);
@@ -105,11 +128,11 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
       section("Developer", "account", developerRows(this.developer()).map(fromRow)),
       section("Runtime", "server-process", runtimeChildren),
       section("Project", "folder", projectChildren),
-      section(
-        "Examples",
-        "book",
-        EXAMPLES.map((e) => action(e.title, "libraos.openExample", "file-code", [e.id], e.description)),
-      ),
+      section("Examples", "book", [
+        ...PATHS.map((p) => group(p.label, PATH_ICON[p.id], p.detail, examplesFor(p.id).map((e) => exampleNode(e, p.id)))),
+        action("Learning Paths", "libraos.openLearningPaths", "map", [], "cookbook guide"),
+        action("Cookbook Setup or This Runtime?", "libraos.cookbookSetupGuide", "server-environment"),
+      ]),
       action("Cloud Deployment", "libraos.cloudDeploy", "cloud-upload", [], "Coming Soon"),
     ];
   }
