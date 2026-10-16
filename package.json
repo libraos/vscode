@@ -79,12 +79,12 @@
       },
       {
         "command": "libraos.registerInstallation",
-        "title": "Register This Installation",
+        "title": "Register This Instance for Developer Benefits",
         "category": "LibraOS"
       },
       {
         "command": "libraos.removeInstallation",
-        "title": "Remove Registered Installation",
+        "title": "Remove Benefit-Registered Instance",
         "category": "LibraOS",
         "icon": "$(trash)"
       },

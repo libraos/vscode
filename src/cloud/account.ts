@@ -345,9 +345,9 @@ export class CloudAccount {
             }
             const r = await vscode.window.showInformationMessage(
               result.kind === "granted"
-                ? "Developer Licence claimed. It is a record of your rights; there is nothing to install. You can now register up to 5 installations."
+                ? "Developer Licence claimed. It is a record of your rights; there is nothing to install. You can now register up to 5 instances for its benefits."
                 : "You already hold the Developer Licence.",
-              "Register This Installation",
+              "Register This Instance",
             );
             if (r) await this.registerInstallation();
             return;

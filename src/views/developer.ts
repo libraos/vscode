@@ -139,7 +139,7 @@ function personalRows(offerClaim: boolean): Row[] {
       label: "Claim Developer Licence",
       description: "free",
       icon: "verified",
-      tooltip: `Free, no expiry. ${DEVELOPER_SCOPE}\nBenefits: register up to 5 installations; inference credits and the full model catalog are coming.`,
+      tooltip: `Free, no expiry. ${DEVELOPER_SCOPE}\nBenefits: up to 5 benefit-registered instances; inference credits are coming.`,
       command: { id: "libraos.claimLicence" },
     });
   }
@@ -148,12 +148,12 @@ function personalRows(offerClaim: boolean): Row[] {
 
 function installationRows(s: InstallationsState | undefined, localId: string | undefined): Row {
   const register: Row = {
-    label: "Register This Installation",
+    label: "Register This Instance",
     icon: "add",
     tooltip: "Registers the local runtime's installation id with your account. Nothing is sent unless you ask.",
     command: { id: "libraos.registerInstallation" },
   };
-  const base = { label: "Registered installations", icon: "server" };
+  const base = { label: "Benefit-registered instances", icon: "server" };
   switch (s?.kind ?? "loading") {
     case "loading":
       return { ...base, description: "Loading…", icon: "loading~spin" };
@@ -191,7 +191,7 @@ function installationRows(s: InstallationsState | undefined, localId: string | u
   return {
     ...base,
     description: `${installations.length}/${limit}`,
-    tooltip: `You can register up to ${limit} installations. Remove one to free a slot.`,
+    tooltip: `Up to ${limit} instances can be registered for Developer Licence benefits. Remove one to free a slot. Registration never affects running the runtime.`,
     children,
   };
 }
@@ -205,12 +205,6 @@ function developerLicenceRow(l: Licence, s: Extract<DeveloperState, { signedIn: 
       icon: "credit-card",
       tooltip: "Developer Licence holders will receive MegaNova inference credits. Linking accounts is not available yet.",
       link: MEGANOVA_CONSOLE,
-    },
-    {
-      label: "Model Catalog",
-      description: "Coming",
-      icon: "library",
-      tooltip: "The full scored model catalog is coming for Developer Licence holders.",
     },
   ];
   return {
@@ -263,7 +257,13 @@ export function developerRows(s: DeveloperState): Row[] {
 
   if (!s.signedIn) {
     return [
-      { label: "Sign In", description: "Not signed in", icon: "account", command: { id: "libraos.signIn" } },
+      {
+        label: "Sign In",
+        description: "Optional: Developer Licence benefits",
+        icon: "account",
+        tooltip: "Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits.",
+        command: { id: "libraos.signIn" },
+      },
       ...personalRows(false),
       openConsole,
     ];

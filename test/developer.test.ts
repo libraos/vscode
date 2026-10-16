@@ -66,7 +66,7 @@ const find = (rows: Row[], label: string): Row | undefined => {
 
 describe("licence display", () => {
   it("signed out: Personal (default), with what it means", () => {
-    expect(show({ signedIn: false })).toEqual(["Sign In = Not signed in", "Licence = Personal (default)", "Open Console"]);
+    expect(show({ signedIn: false })).toEqual(["Sign In = Optional: Developer Licence benefits", "Licence = Personal (default)", "Open Console"]);
     const rows = developerRows({ signedIn: false });
     expect(rows[0].command?.id).toBe("libraos.signIn");
     expect(rows[1].tooltip).toMatch(/free/);
@@ -98,9 +98,8 @@ describe("licence display", () => {
     expect(rows.map(line)).toEqual(["Signed in = dev@acme.test (Acme)", "Developer Licence = Active, no expiry", "Open Console", "Sign Out"]);
     const licence = rows[1];
     expect(licence.children?.map(line)).toEqual([
-      "Registered installations = 0/5",
+      "Benefit-registered instances = 0/5",
       "Inference Credits = Coming",
-      "Model Catalog = Coming",
     ]);
     expect(licence.tooltip).toContain("Production use: not included");
     expect(licence.tooltip).toMatch(/non-production development inside an organization/);
@@ -174,24 +173,24 @@ describe("developer benefits", () => {
 
   it("lists registered installations n/limit with Remove on each", () => {
     const rows = held({ kind: "loaded", limit: 5, installations: [inst("a", "laptop"), inst("b", "build box", { runtimeVersion: undefined })] });
-    const reg = find(rows, "Registered installations")!;
+    const reg = find(rows, "Benefit-registered instances")!;
     expect(reg.description).toBe("2/5");
-    expect(reg.children?.map(line)).toEqual(["laptop = v0.3.0", "build box", "Register This Installation"]);
+    expect(reg.children?.map(line)).toEqual(["laptop = v0.3.0", "build box", "Register This Instance"]);
     expect(reg.children?.[0].contextValue).toBe("libraos.installation");
     expect(reg.children?.[0].arg).toEqual({ installationId: "a", name: "laptop" });
     expect(reg.children?.[2].command?.id).toBe("libraos.registerInstallation");
   });
 
   it("marks this machine and stops offering to register it", () => {
-    const reg = find(held({ kind: "loaded", limit: 5, installations: [inst("a", "laptop"), inst("b", "ci")] }, "b"), "Registered installations")!;
+    const reg = find(held({ kind: "loaded", limit: 5, installations: [inst("a", "laptop"), inst("b", "ci")] }, "b"), "Benefit-registered instances")!;
     expect(reg.children?.map(line)).toEqual(["laptop = v0.3.0", "ci = this machine · v0.3.0"]);
   });
 
   it("loading, unavailable and error states", () => {
-    expect(find(held({ kind: "loading" }), "Registered installations")?.description).toBe("Loading…");
-    expect(find(held(undefined), "Registered installations")?.description).toBe("Loading…");
-    expect(find(held({ kind: "unavailable" }), "Registered installations")?.description).toMatch(/Not available/);
-    const err = find(held({ kind: "error", message: "boom" }), "Registered installations")!;
+    expect(find(held({ kind: "loading" }), "Benefit-registered instances")?.description).toBe("Loading…");
+    expect(find(held(undefined), "Benefit-registered instances")?.description).toBe("Loading…");
+    expect(find(held({ kind: "unavailable" }), "Benefit-registered instances")?.description).toMatch(/Not available/);
+    const err = find(held({ kind: "error", message: "boom" }), "Benefit-registered instances")!;
     expect(err.command?.id).toBe("libraos.refresh");
   });
 
@@ -200,12 +199,12 @@ describe("developer benefits", () => {
     expect(credits.description).toBe("Coming");
     expect(credits.link).toBe(MEGANOVA_CONSOLE);
     expect(JSON.stringify(credits)).not.toMatch(/\$\d/);
-    expect(find(held({ kind: "loading" }), "Model Catalog")?.description).toBe("Coming");
+    expect(find(held({ kind: "loading" }), "Model Catalog")).toBeUndefined();
   });
 
   it("benefits appear only with a Developer Licence", () => {
     expect(find(developerRows({ signedIn: false }), "Inference Credits")).toBeUndefined();
-    expect(find(developerRows(signedIn({ kind: "loaded", licences: [legacyEval()] })), "Registered installations")).toBeUndefined();
+    expect(find(developerRows(signedIn({ kind: "loaded", licences: [legacyEval()] })), "Benefit-registered instances")).toBeUndefined();
   });
 });
 

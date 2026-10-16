@@ -21,9 +21,9 @@ steps between your editor and a running runtime.
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | Opens runnable examples from [`libraos/cookbook`](https://github.com/libraos/cookbook) and [`libraos/sdk`](https://github.com/libraos/sdk). |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
-| **Sign In / Sign Out** | Signs in to your LibraOS developer account with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
+| **Sign In / Sign Out** | Optional. Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits, with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
 | **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your free Developer Licence. Personal use needs no licence. |
-| **Register This Installation** | A Developer Licence benefit: registers the local runtime with your account (up to 5), so you can see and remove them from the sidebar. |
+| **Register This Instance for Developer Benefits** | A Developer Licence benefit: registers the local runtime with your account (up to 5 benefit-registered instances), so you can see and remove them from the sidebar. |
 | **Open Console** | The LibraOS Developer Console, for keys, licences and usage. |
 
 ## Requirements
@@ -78,17 +78,18 @@ A licence is a record of your rights, not something to install or configure.
 
 Benefits, listed under the licence in the sidebar:
 
-- **Registered installations**, up to 5. **Register This Installation** reads
+- **Benefit-registered instances**, up to 5. **Register This Instance for Developer Benefits** reads
   the local runtime's installation id (a random id the runtime creates once per
   database; the extension reads it with its own admin session to the runtime,
   which never leaves your machine) and sends it, with a name you choose and the
   runtime version, to the Console. Nothing is registered unless you run the
   command, and the runtime itself never calls out. When all slots are in use,
   the command lists them and offers to remove one; **Remove** on an
-  installation frees its slot right away. Removing a registration does not
-  affect the runtime.
+  instance frees its slot right away. Removing a registration does not
+  affect the runtime. The id belongs to the runtime's database, not to a
+  machine: runtimes sharing a database are one instance, and a copied
+  database keeps the same id.
 - **Inference credits**: coming (see below).
-- **Full model catalog**: coming.
 
 Organization evaluation and small-organization licence records are shown with
 their expiry when your organization holds one.

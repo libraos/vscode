@@ -47,7 +47,7 @@ exports.run = async function run() {
   const developer = (await api.tree.getChildren((await api.tree.getChildren())[0])).map(
     (n) => `${n.label}${n.description ? ` = ${n.description}` : ""}`,
   );
-  assert.deepStrictEqual(developer, ["Sign In = Not signed in", "Licence = Personal (default)", "Open Console"]);
+  assert.deepStrictEqual(developer, ["Sign In = Optional: Developer Licence benefits", "Licence = Personal (default)", "Open Console"]);
   const personal = (await api.tree.getChildren((await api.tree.getChildren())[0]))[1];
   assert.match(String(personal.tooltip), /never checks a licence/, "Personal explains the runtime never checks a licence");
   const inline = ext.packageJSON.contributes.menus["view/item/context"];
