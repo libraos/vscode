@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.2 (preview)
 
 - **Get Example: examples open and run in VS Code.** Clicking an example downloads it from GitHub into a local folder you choose: the whole cookbook once, into `libraos-cookbook`, so files shared between examples are in place, and only the needed files for SDK examples. It then opens the source file from disk with its README beside it, and a terminal with the run command typed in but not run. In 0.3.1, most examples opened only on GitHub, and single-file examples opened as unsaved buffers that VS Code's Run button could not run.
 - **Python is set up for you.** For a Python example, Get Example offers to create a `.venv` in the examples folder with the pinned packages, `libraos-sdk` 2.0.0 among them, so the script no longer fails with `ModuleNotFoundError: No module named 'libraos'`. It picks Python 3.10 or newer, skipping an older `python3`, shows the commands before running them, and points the folder's Run and Debug at the `.venv`.
