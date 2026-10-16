@@ -19,7 +19,7 @@ steps between your editor and a running runtime.
 | **Configure Model** | Points the runtime at an OpenAI-compatible endpoint: the MegaNova AI gateway, a local proxy, Ollama, or any other. Lists the endpoint's models, lets you pick one, and test-calls it before saving. |
 | **Run / Stop Local Runtime** | Starts and stops the runtime, with its health in the status bar. |
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
-| **Browse Cookbook** | Opens runnable examples from [`libraos/cookbook`](https://github.com/libraos/cookbook) and [`libraos/sdk`](https://github.com/libraos/sdk). |
+| **Browse Cookbook** | The [`libraos/cookbook`](https://github.com/libraos/cookbook) learning paths and [`libraos/sdk`](https://github.com/libraos/sdk) examples, with what each one needs before it runs. See [Cookbook examples](#cookbook-examples). |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
 | **Sign In / Sign Out** | Optional. Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits, with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
 | **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your free Developer Licence. Personal use needs no licence. |
@@ -53,6 +53,56 @@ against the `.sha256` published next to it.
 4. **Initialize LibraOS Project**.
 5. Open a new VS Code terminal and run the quickstart file, for example
    `node libraos-quickstart.mts` or `python libraos_quickstart.py`.
+
+## Cookbook examples
+
+**Browse Cookbook** and the sidebar's **Examples** follow the cookbook's
+[learning paths](https://github.com/libraos/cookbook/blob/main/docs/learning-paths.md):
+
+- **Learn Step by Step:** First Agent and Ticket Routing (L1), then any of
+  Document Q&A, Tools or Memory (L2), Customer Support and HTTP Async Job &
+  Recovery (L3), and the complete applications (L4).
+- **Explore by Capability:** Knowledge, Tools, Memory or Async on its own.
+- **See Complete Applications:** Personal Assistant, Marketing Team and
+  Mission Console.
+- **SDK Examples:** single-file examples from `libraos/sdk`, marked as SDK
+  examples.
+
+Choosing an example first shows what it needs: language and SDK versions,
+Runtime switches, mounted app folders, tool-callback setup, users or sign-in
+clients, and how far it has been validated. Then:
+
+- **Open Tutorial** opens its README on GitHub.
+- **View Source** opens a single-file example in an editor. For an example
+  with several files it opens the repository folder, whose README lists every
+  file, dependency and setting. One copied file would not run on its own.
+
+Both actions are also inline buttons on each example in the sidebar.
+
+### Which Runtime to run them on
+
+The Runtime this extension manages is for your own app. VS Code terminals get
+`LIBRA_OS_URL` and an inference-scoped project API key, which covers
+model-serving routes and chat with existing agents. Most cookbook examples need
+more: a setup identity that creates agents and ingests knowledge, and some
+need memory or mission switches, mounted app folders, callback secrets and
+allowed hosts, two ordinary users, or sign-in clients. Use the cookbook's
+[get-started setup](https://github.com/libraos/cookbook/blob/main/get-started/README.md)
+and [recipe setup](https://github.com/libraos/cookbook/blob/main/docs/recipe-setup.md)
+for those. The extension does not change its Runtime's configuration for an
+example. Both Runtimes default to port 8900, so stop one before starting the
+other, or change a port.
+
+The cookbook is written against Runtime v0.2.2 and `libraos-sdk` 2.0.0, the
+Runtime version this extension pins. The native HTTP async recipe uses the
+`/agents/v1/{agent}/jobs` routes. The SDK's managed jobs example uses
+`/v1/managed/agents/jobs`, which older Runtime releases may not serve. The two
+have different response shapes.
+
+A listed example is not a compatibility certification. The Tools, Memory and
+HTTP Async recipes have passed the cookbook's offline protocol tests, but live
+Runtime and model runs have not been recorded for them yet. See the cookbook's
+[validation notes](https://github.com/libraos/cookbook/blob/main/docs/validation.md).
 
 ## Developer account and licence
 

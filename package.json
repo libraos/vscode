@@ -141,6 +141,28 @@
         "category": "LibraOS"
       },
       {
+        "command": "libraos.openExampleTutorial",
+        "title": "Open Example Tutorial",
+        "category": "LibraOS",
+        "icon": "$(book)"
+      },
+      {
+        "command": "libraos.viewExampleSource",
+        "title": "View Example Source",
+        "category": "LibraOS",
+        "icon": "$(code)"
+      },
+      {
+        "command": "libraos.openLearningPaths",
+        "title": "Open Cookbook Learning Paths",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.cookbookSetupGuide",
+        "title": "Cookbook Setup or This Runtime?",
+        "category": "LibraOS"
+      },
+      {
         "command": "libraos.cloudDeploy",
         "title": "Cloud Deployment (Coming Soon)",
         "category": "LibraOS"
@@ -165,6 +187,16 @@
           "command": "libraos.removeInstallation",
           "when": "view == libraos.workspace && viewItem == libraos.installation",
           "group": "inline"
+        },
+        {
+          "command": "libraos.openExampleTutorial",
+          "when": "view == libraos.workspace && viewItem == libraos.example",
+          "group": "inline@1"
+        },
+        {
+          "command": "libraos.viewExampleSource",
+          "when": "view == libraos.workspace && viewItem == libraos.example",
+          "group": "inline@2"
         }
       ]
     },
