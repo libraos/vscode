@@ -6,7 +6,10 @@ import {
   DeviceFlowError,
   getTerms,
   grantDeveloperLicence,
+  listInstallations,
   listLicences,
+  registerInstallation,
+  removeInstallation,
   pollDeviceToken,
   requestDeviceCode,
   UnauthorizedError,
@@ -24,7 +27,7 @@ function scripted(script: Record<string, Reply[]>, seen: Request[] = []) {
     const next = q?.shift();
     if (!next) throw new TypeError("fetch failed");
     if (next instanceof Error) throw next;
-    return new Response(JSON.stringify(next.body), { status: next.status });
+    return new Response(next.status === 204 ? null : JSON.stringify(next.body), { status: next.status });
   }) as typeof fetch;
 }
 
@@ -303,5 +306,136 @@ describe("licences", () => {
     await expect(grantDeveloperLicence(ORIGIN, "t", "v", f)).rejects.toBeInstanceOf(UnauthorizedError);
     await expect(grantDeveloperLicence(ORIGIN, "t", "v", f)).rejects.toThrow(/too many requests/);
     await expect(grantDeveloperLicence(ORIGIN, "t", "v", f)).rejects.toThrow(/accept the terms/);
+  });
+});
+
+describe("developer terms", () => {
+  it("prefers editions.developer over the top-level fields", async () => {
+    const f = scripted({
+      "/v1/licenses/terms": [
+        {
+          status: 200,
+          body: {
+            ...terms,
+            terms_version: "legacy-1",
+            editions: {
+              developer: { terms_version: "developer-2026-10", name: "LibraOS Developer Licence", url: "https://libraos.com/dev", summary: "Free." },
+              evaluation: { terms_version: "eval-1", name: "Evaluation", summary: "90 days." },
+            },
+          },
+        },
+      ],
+    });
+    expect(await getTerms(ORIGIN, f)).toEqual({
+      version: "developer-2026-10",
+      name: "LibraOS Developer Licence",
+      url: "https://libraos.com/dev",
+      summary: "Free.",
+    });
+  });
+
+  it("falls back to the top-level fields on an older Console", async () => {
+    for (const body of [terms, { ...terms, editions: {} }, { ...terms, editions: { developer: { name: "no version" } } }]) {
+      const f = scripted({ "/v1/licenses/terms": [{ status: 200, body }] });
+      expect((await getTerms(ORIGIN, f)).version).toBe("developer-2026-10");
+    }
+  });
+});
+
+const installation = {
+  installation_id: "6f1c3a52-1111-4222-8333-444455556666",
+  name: "laptop",
+  runtime_version: "v0.3.0",
+  registered_at: "2026-10-16T10:00:00Z",
+  last_seen_at: "2026-10-16T10:00:00Z",
+};
+const req = { installationId: installation.installation_id, name: "laptop", runtimeVersion: "v0.3.0" };
+
+describe("installations", () => {
+  it("lists with the bearer token", async () => {
+    const seen: Request[] = [];
+    const f = scripted({ "/v1/installations": [{ status: 200, body: { limit: 5, installations: [installation, { name: "no id" }] } }] }, seen);
+    expect(await listInstallations(ORIGIN, "tok-123", f)).toEqual({
+      limit: 5,
+      installations: [
+        {
+          installationId: installation.installation_id,
+          name: "laptop",
+          runtimeVersion: "v0.3.0",
+          registeredAt: "2026-10-16T10:00:00Z",
+          lastSeenAt: "2026-10-16T10:00:00Z",
+        },
+      ],
+    });
+    expect(seen[0].headers.get("authorization")).toBe("Bearer tok-123");
+  });
+
+  it("201 registers and sends id, name and runtime version", async () => {
+    const seen: Request[] = [];
+    const f = scripted({ "/v1/installations": [{ status: 201, body: installation }] }, seen);
+    const r = await registerInstallation(ORIGIN, "tok-123", req, f);
+    expect(r).toMatchObject({ kind: "registered", installation: { name: "laptop" } });
+    expect(seen[0].method).toBe("POST");
+    expect(await seen[0].json()).toEqual({ installation_id: req.installationId, name: "laptop", runtime_version: "v0.3.0" });
+    expect(seen[0].headers.get("authorization")).toBe("Bearer tok-123");
+  });
+
+  it("200 is an update of an existing registration; no version is not sent", async () => {
+    const seen: Request[] = [];
+    const f = scripted({ "/v1/installations": [{ status: 200, body: installation }] }, seen);
+    expect((await registerInstallation(ORIGIN, "t", { ...req, runtimeVersion: undefined }, f)).kind).toBe("updated");
+    expect(await seen[0].json()).toEqual({ installation_id: req.installationId, name: "laptop" });
+  });
+
+  it("403 developer_license_required", async () => {
+    const f = scripted({ "/v1/installations": [{ status: 403, body: { error: "developer_license_required", message: "claim it" } }] });
+    expect(await registerInstallation(ORIGIN, "t", req, f)).toEqual({ kind: "developer_license_required", message: "claim it" });
+  });
+
+  it("409 installation_limit_reached carries the list", async () => {
+    const f = scripted({
+      "/v1/installations": [{ status: 409, body: { error: "installation_limit_reached", limit: 5, installations: [installation] } }],
+    });
+    const r = await registerInstallation(ORIGIN, "t", req, f);
+    expect(r).toMatchObject({ kind: "limit_reached", limit: 5, installations: [{ name: "laptop" }] });
+  });
+
+  it("401 is UnauthorizedError; 400 carries the server's message", async () => {
+    const f = scripted({
+      "/v1/installations": [
+        { status: 401, body: { error: "unauthenticated" } },
+        { status: 400, body: { error: "invalid_installation_id", message: "installation_id must be a UUID" } },
+        { status: 403, body: { error: "forbidden" } },
+      ],
+    });
+    await expect(registerInstallation(ORIGIN, "t", req, f)).rejects.toBeInstanceOf(UnauthorizedError);
+    await expect(registerInstallation(ORIGIN, "t", req, f)).rejects.toThrow(/must be a UUID/);
+    await expect(registerInstallation(ORIGIN, "t", req, f)).rejects.toThrow(/forbidden/);
+  });
+
+  it("removes with DELETE; 404 means it was not registered", async () => {
+    const seen: Request[] = [];
+    const path = `/v1/installations/${installation.installation_id}`;
+    const f = scripted(
+      {
+        [path]: [
+          { status: 204, body: "" },
+          { status: 404, body: { error: "not_found" } },
+          { status: 401, body: {} },
+        ],
+      },
+      seen,
+    );
+    expect(await removeInstallation(ORIGIN, "tok-123", installation.installation_id, f)).toBe(true);
+    expect(seen[0].method).toBe("DELETE");
+    expect(seen[0].headers.get("authorization")).toBe("Bearer tok-123");
+    expect(await removeInstallation(ORIGIN, "t", installation.installation_id, f)).toBe(false);
+    await expect(removeInstallation(ORIGIN, "t", installation.installation_id, f)).rejects.toBeInstanceOf(UnauthorizedError);
+  });
+
+  it("escapes the id in the path", async () => {
+    const seen: Request[] = [];
+    await removeInstallation(ORIGIN, "t", "a/../b", scripted({}, seen)).catch(() => undefined);
+    expect(new URL(seen[0].url).pathname).toBe("/v1/installations/a%2F..%2Fb");
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { adminToken, health, mintServiceKey, RuntimeApiError } from "../src/runtime/api";
+import { adminToken, getInstallation, health, mintServiceKey, RuntimeApiError } from "../src/runtime/api";
 
 function fakeFetch(routes: Record<string, { status: number; body: unknown }>, seen: Request[] = []) {
   return (async (input: string | URL | Request, init?: RequestInit) => {
@@ -43,5 +43,35 @@ describe("adminToken and mintServiceKey", () => {
     const f = fakeFetch({ "/api/service-keys": { status: 403, body: { error: "admin_required" } } });
     await expect(mintServiceKey("http://x", "t", "n", f)).rejects.toThrow(RuntimeApiError);
     await expect(mintServiceKey("http://x", "t", "n", f)).rejects.toThrow(/admin_required/);
+  });
+});
+
+describe("getInstallation", () => {
+  it("reads the installation id with the admin token", async () => {
+    const seen: Request[] = [];
+    const f = fakeFetch(
+      { "/v1/managed/installation": { status: 200, body: { installation_id: "uuid-1", persistent: true, version: "v0.3.0" } } },
+      seen,
+    );
+    expect(await getInstallation("http://127.0.0.1:8900", "tok", f)).toEqual({ installationId: "uuid-1", persistent: true, version: "v0.3.0" });
+    expect(seen[0].headers.get("authorization")).toBe("Bearer tok");
+    expect(seen[0].method).toBe("GET");
+  });
+
+  it("reports a non-persistent id", async () => {
+    const f = fakeFetch({ "/v1/managed/installation": { status: 200, body: { installation_id: "u", persistent: false } } });
+    expect(await getInstallation("http://x", "t", f)).toEqual({ installationId: "u", persistent: false, version: undefined });
+  });
+
+  it("an older runtime answers 404", async () => {
+    const f = fakeFetch({ "/v1/managed/installation": { status: 404, body: { error: "not_found" } } });
+    const err = await getInstallation("http://x", "t", f).catch((e) => e);
+    expect(err).toBeInstanceOf(RuntimeApiError);
+    expect(err.status).toBe(404);
+  });
+
+  it("refuses a response without an id", async () => {
+    const f = fakeFetch({ "/v1/managed/installation": { status: 200, body: {} } });
+    await expect(getInstallation("http://x", "t", f)).rejects.toThrow(/no installation_id/);
   });
 });

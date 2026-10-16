@@ -83,3 +83,35 @@ export async function mintServiceKey(base: string, token: string, name: string, 
   }
   return { id: body.id, secret: body.secret };
 }
+
+export interface RuntimeInstallation {
+  installationId: string;
+  persistent: boolean;
+  version?: string;
+}
+
+// The runtime's installation id (admin only). A runtime older than this
+// endpoint answers 404. Nothing here leaves the machine: the runtime is on
+// 127.0.0.1 and the admin token is used only against it.
+export async function getInstallation(base: string, token: string, f: Fetch = fetch): Promise<RuntimeInstallation> {
+  const url = `${base}/v1/managed/installation`;
+  const r = await f(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+  const text = await r.text();
+  let json: Record<string, unknown> = {};
+  try {
+    json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+  } catch {
+    // Non-JSON error bodies fall through to the status check.
+  }
+  if (!r.ok) {
+    const reason = typeof json.error === "string" ? json.error : `HTTP ${r.status}`;
+    throw new RuntimeApiError(`/v1/managed/installation: ${reason}`, r.status);
+  }
+  const id = json.installation_id;
+  if (typeof id !== "string" || !id) throw new RuntimeApiError("/v1/managed/installation: response had no installation_id");
+  return {
+    installationId: id,
+    persistent: json.persistent === true,
+    version: typeof json.version === "string" && json.version ? json.version : undefined,
+  };
+}

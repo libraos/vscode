@@ -6,19 +6,66 @@ import {
   DeviceFlowError,
   getTerms,
   grantDeveloperLicence,
+  listInstallations,
   listLicences,
   pollDeviceToken,
+  registerInstallation,
+  removeInstallation,
   requestDeviceCode,
   UnauthorizedError,
   type Terms,
 } from "./client";
-import { accountLabel, licenceSummary, type DeveloperState, type LicenceState } from "../views/developer";
+import {
+  accountLabel,
+  activeDeveloperLicence,
+  DEVELOPER_SCOPE,
+  licenceKind,
+  licenceSummary,
+  type DeveloperState,
+  type InstallationsState,
+  type LicenceState,
+} from "../views/developer";
+import type { RuntimeInstallation } from "../runtime/api";
+import {
+  installationTarget,
+  registerInstallationFlow,
+  removeInstallationFlow,
+  type InstallationsApi,
+  type Ui,
+} from "./installations";
 
 const DEFAULT_CONSOLE = "https://console.libraos.com";
 
 export function consoleUrl(): string {
   return vscode.workspace.getConfiguration("libraos").get<string>("consoleUrl", DEFAULT_CONSOLE) || DEFAULT_CONSOLE;
 }
+
+// The Console's Licenses page, where commercial and small-organization
+// licences are handled.
+export function licensesPage(): string | undefined {
+  try {
+    return `${consoleOrigin(consoleUrl())}/licenses`;
+  } catch {
+    return undefined;
+  }
+}
+
+// The local runtime, as the account needs it. The admin session used to read
+// the installation id stays on this machine.
+export interface LocalRuntime {
+  // Throws on errors (a RuntimeApiError 404 means the runtime is too old).
+  installation(): Promise<RuntimeInstallation | "not_running">;
+  defaultName(): string;
+}
+
+const ui: Ui = {
+  info: (m, ...a) => Promise.resolve(vscode.window.showInformationMessage(m, ...a)),
+  warn: (m, ...a) => Promise.resolve(vscode.window.showWarningMessage(m, ...a)),
+  error: (m) => void vscode.window.showErrorMessage(m),
+  confirm: async (m, detail, c) => (await vscode.window.showWarningMessage(m, { modal: true, detail }, c)) === c,
+  input: (title, value, validate) => Promise.resolve(vscode.window.showInputBox({ title, value, validateInput: validate, ignoreFocusOut: true })),
+  pick: (title, items) => Promise.resolve(vscode.window.showQuickPick(items, { title, matchOnDescription: true })),
+};
 
 // Opens only web links: a server-supplied URL must not launch anything else.
 function openWeb(url: string): Thenable<boolean> | undefined {
@@ -38,6 +85,7 @@ export class CloudAccount {
   constructor(
     private readonly secrets: Secrets,
     private readonly output: vscode.OutputChannel,
+    private readonly runtime?: LocalRuntime,
   ) {}
 
   get state(): DeveloperState {
@@ -97,7 +145,82 @@ export class CloudAccount {
         licence = { kind: "error", message: String((err as Error).message ?? err) };
       }
     }
-    this.set({ ...who, licence });
+    if (!activeDeveloperLicence(licence)) {
+      this.set({ ...who, licence });
+      return;
+    }
+    const prev = this.current.signedIn ? this.current : undefined;
+    if (!prev?.installations) this.set({ ...who, licence, installations: { kind: "loading" } });
+    let installations: InstallationsState;
+    try {
+      installations = { kind: "loaded", ...(await listInstallations(s.origin, s.token)) };
+    } catch (err) {
+      if (err instanceof UnauthorizedError) return this.endSession(true);
+      if (err instanceof CloudError && (err.status === 404 || err.status === 501)) installations = { kind: "unavailable" };
+      else {
+        this.output.appendLine(`Loading installations failed: ${String((err as Error).message ?? err)}`);
+        installations = { kind: "error", message: String((err as Error).message ?? err) };
+      }
+    }
+    this.set({ ...who, licence, installations, localInstallationId: await this.localInstallationId() });
+  }
+
+  // The local runtime's installation id, quietly: undefined when it is not
+  // running, too old, or not the extension's own.
+  private async localInstallationId(): Promise<string | undefined> {
+    try {
+      const r = await this.runtime?.installation();
+      return r && r !== "not_running" ? r.installationId : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private api(s: StoredSession): InstallationsApi {
+    return {
+      register: (req) => registerInstallation(s.origin, s.token, req),
+      list: () => listInstallations(s.origin, s.token),
+      remove: (id) => removeInstallation(s.origin, s.token, id),
+    };
+  }
+
+  // A signed-in session, offering sign-in first when there is none.
+  private async requireSession(why: string): Promise<StoredSession | undefined> {
+    const s = await this.session();
+    if (s) return s;
+    const r = await vscode.window.showInformationMessage(why, "Sign In");
+    if (r) await this.signIn();
+    return this.session();
+  }
+
+  async registerInstallation(): Promise<void> {
+    if (!this.runtime) return;
+    const s = await this.requireSession("Sign in to register this installation with your Developer Licence.");
+    if (!s) return;
+    const runtime = this.runtime;
+    const outcome = await registerInstallationFlow({
+      ui,
+      api: this.api(s),
+      local: () => runtime.installation(),
+      defaultName: runtime.defaultName(),
+      claimLicence: () => this.claimLicence(),
+      startRuntime: async () => {
+        await vscode.commands.executeCommand("libraos.startRuntime");
+      },
+      signedOut: () => this.endSession(true),
+      changed: () => this.refresh(),
+    });
+    this.output.appendLine(`Register this installation: ${outcome}`);
+  }
+
+  async removeInstallation(item?: unknown): Promise<void> {
+    const s = await this.requireSession("Sign in to manage your registered installations.");
+    if (!s) return;
+    const outcome = await removeInstallationFlow(
+      { ui, api: this.api(s), signedOut: () => this.endSession(true), changed: () => this.refresh() },
+      installationTarget(item),
+    );
+    this.output.appendLine(`Remove installation: ${outcome}`);
   }
 
   async signIn(): Promise<void> {
@@ -213,21 +336,30 @@ export class CloudAccount {
         const result = await grantDeveloperLicence(s.origin, s.token, terms.version);
         switch (result.kind) {
           case "granted":
-            void vscode.window.showInformationMessage(
-              `Developer Licence claimed: ${licenceSummary(result.licence)}. It is a record of your rights; there is nothing to install.`,
+          case "existing": {
+            await this.refresh();
+            if (licenceKind(result.licence) !== "developer") {
+              // An older Console records an organization evaluation instead.
+              void vscode.window.showInformationMessage(`The Console recorded: ${licenceSummary(result.licence)}.`);
+              return;
+            }
+            const r = await vscode.window.showInformationMessage(
+              result.kind === "granted"
+                ? "Developer Licence claimed. It is a record of your rights; there is nothing to install. You can now register up to 5 installations."
+                : "You already hold the Developer Licence.",
+              "Register This Installation",
             );
-            return this.refresh();
-          case "existing":
-            void vscode.window.showInformationMessage(
-              `Your organization already holds the Developer Licence: ${licenceSummary(result.licence)}.`,
-            );
-            return this.refresh();
+            if (r) await this.registerInstallation();
+            return;
+          }
           case "already_evaluated": {
+            // Only an older Console answers this.
             const r = await vscode.window.showWarningMessage(
-              `This organization's free evaluation has ended${result.licence ? ` (${licenceSummary(result.licence)})` : ""}. Claiming again does not renew it; to continue, contact LibraOS sales.`,
-              "Open Console",
+              `This Console could not record a Developer Licence${result.licence ? ` (it holds ${licenceSummary(result.licence)})` : ""}. ${result.message ?? ""}`.trim(),
+              "Open Licenses Page",
             );
-            if (r) void vscode.commands.executeCommand("libraos.openConsole");
+            const page = licensesPage();
+            if (r && page) await openWeb(page);
             return this.refresh();
           }
           case "terms_outdated":
@@ -259,7 +391,9 @@ export class CloudAccount {
             terms.summary,
             ...(terms.url ? ["", `Full terms: ${terms.url}`] : []),
             "",
-            "Claiming records that your organization accepts these terms. A licence is a record of your rights under the LibraOS licence; the runtime does not check it.",
+            `The Developer Licence is free and does not expire. ${DEVELOPER_SCOPE}${licensesPage() ? ` See ${licensesPage()}` : ""}`,
+            "",
+            "Personal use needs no licence. A licence is a record of your rights; the runtime never checks it.",
           ].join("\n"),
         },
         ...buttons,

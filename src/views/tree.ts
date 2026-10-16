@@ -3,7 +3,7 @@ import type { RuntimeManager } from "../runtime/manager";
 import { EXAMPLES } from "../examples/catalog";
 import { developerRows, type DeveloperState, type Row } from "./developer";
 
-type Node = vscode.TreeItem & { children?: Node[] };
+type Node = vscode.TreeItem & { children?: Node[]; arg?: unknown };
 
 function section(label: string, icon: string, children: Node[]): Node {
   const n: Node = new vscode.TreeItem(label, vscode.TreeItemCollapsibleState.Expanded);
@@ -29,7 +29,13 @@ function action(label: string, command: string, icon: string, args: unknown[] = 
 }
 
 function fromRow(r: Row): Node {
-  const n: Node = new vscode.TreeItem(r.label);
+  const n: Node = new vscode.TreeItem(
+    r.label,
+    r.children ? vscode.TreeItemCollapsibleState.Expanded : vscode.TreeItemCollapsibleState.None,
+  );
+  if (r.children) n.children = r.children.map(fromRow);
+  n.contextValue = r.contextValue;
+  n.arg = r.arg;
   n.description = r.description;
   n.iconPath = new vscode.ThemeIcon(r.icon);
   n.tooltip = r.tooltip;

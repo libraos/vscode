@@ -1,8 +1,16 @@
 # Changelog
 
-## 0.2.1 (preview)
+## 0.3.0 (preview)
 
+- **Personal is the default.** Signed out, or signed in with no licence record, the sidebar shows **Licence: Personal (default)**. Personal use is free, needs no account, and the runtime never checks a licence. Wording that suggested a licence was needed to use the runtime is gone.
+- **Developer Licence.** **Claim Developer Licence** shows the current developer terms and claims only after you confirm. The Developer Licence is free and does not expire. It covers personal use and non-production development inside an organization; production use needs a commercial or small-organization licence (see the Console's Licenses page). Once held, the sidebar shows it with "no expiry" and its benefits.
+- **Benefits under the Developer Licence:** registered installations (live), inference credits (coming, with a link to the MegaNova console, never a balance) and the full model catalog (coming).
+- **Register This Installation.** Reads the local runtime's installation id (the extension's own admin session to the runtime, which stays on your machine), asks for a name (the workspace folder or host name by default), and registers it with your account. Nothing is registered unless you run the command. Up to 5 installations; when all slots are in use, it lists them and offers to remove one. Without a Developer Licence it offers the claim; a runtime too old to report an id is reported as needing an update.
+- **Registered installations n/5** in the sidebar, with each installation, "this machine" marked, and a **Remove** action (with confirmation) that frees the slot right away. Also available from the Command Palette.
+- Organization evaluation and small-organization licence records are shown with their expiry when your organization holds them.
 - **Icons show up.** Both icons had a solid white background. The activity bar uses an icon's transparency as a mask, so it showed a plain square instead of the logo, and the Extensions view showed the logo on a white tile. The extension icon is now the LibraOS mark on a transparent background, and the activity bar uses the monochrome mark as an SVG, so it takes the theme's colour.
+
+Registration and the new licence display need the matching Console and runtime releases. The Personal default and the icons work without them.
 
 ## 0.2.0 (preview)
 
