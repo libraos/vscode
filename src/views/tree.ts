@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { RuntimeManager } from "../runtime/manager";
 import { EXAMPLES } from "../examples/catalog";
+import { developerRows, type DeveloperState, type Row } from "./developer";
 
 type Node = vscode.TreeItem & { children?: Node[] };
 
@@ -27,6 +28,16 @@ function action(label: string, command: string, icon: string, args: unknown[] = 
   return n;
 }
 
+function fromRow(r: Row): Node {
+  const n: Node = new vscode.TreeItem(r.label);
+  n.description = r.description;
+  n.iconPath = new vscode.ThemeIcon(r.icon);
+  n.tooltip = r.tooltip;
+  if (r.command) n.command = { command: r.command.id, title: r.label, arguments: r.command.args };
+  else if (r.link) n.command = { command: "vscode.open", title: r.label, arguments: [vscode.Uri.parse(r.link)] };
+  return n;
+}
+
 export interface ProjectState {
   initialized: boolean;
   hasKey: boolean;
@@ -39,6 +50,7 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
   constructor(
     private readonly runtime: RuntimeManager,
     private readonly project: () => Promise<ProjectState>,
+    private readonly developer: () => DeveloperState,
   ) {
     runtime.onDidChange(() => this.changed.fire());
   }
@@ -84,12 +96,7 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
       : [action("Initialize LibraOS Project", "libraos.initProject", "add")];
 
     return [
-      section("Developer", "account", [
-        action("Developer account", "libraos.signIn", "account", [], "Preview: not signed in"),
-        info("Welcome Credits", "$10 offer, after sign-in", "gift"),
-        info("License", "Not connected", "law"),
-        action("Open Console", "libraos.openConsole", "link-external"),
-      ]),
+      section("Developer", "account", developerRows(this.developer()).map(fromRow)),
       section("Runtime", "server-process", runtimeChildren),
       section("Project", "folder", projectChildren),
       section(

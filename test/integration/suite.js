@@ -4,6 +4,8 @@ const vscode = require("vscode");
 const COMMANDS = [
   "libraos.refresh",
   "libraos.signIn",
+  "libraos.signOut",
+  "libraos.claimLicence",
   "libraos.openConsole",
   "libraos.configureModel",
   "libraos.installRuntime",
@@ -40,5 +42,15 @@ exports.run = async function run() {
   assert.deepStrictEqual(sections, ["Developer", "Runtime", "Project", "Examples", "Cloud Deployment"]);
   const runtime = await api.tree.getChildren((await api.tree.getChildren())[1]);
   assert.ok(runtime.some((n) => n.label === "Install Runtime"), "a fresh install offers Install Runtime");
+  const developer = (await api.tree.getChildren((await api.tree.getChildren())[0])).map(
+    (n) => `${n.label}${n.description ? ` = ${n.description}` : ""}`,
+  );
+  assert.deepStrictEqual(developer, [
+    "Sign In = Not signed in",
+    "Licence = Sign in to see it",
+    "Inference Credits = Account not linked",
+    "Open Console",
+  ]);
+  assert.strictEqual(api.account.state.signedIn, false, "a fresh install is signed out");
   console.log("integration: ok —", COMMANDS.length, "commands, activation on view open");
 };

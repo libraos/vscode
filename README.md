@@ -8,9 +8,8 @@ project to it, and gives you runnable examples. It is not a coding assistant:
 it does not chat with you or write your code. Its job is to remove the setup
 steps between your editor and a running runtime.
 
-> **Preview.** Developer sign-in, the Developer License, the $10 welcome
-> credits and Cloud Deployment arrive with the LibraOS Developer Console and
-> are shown as such in the sidebar.
+> **Preview.** Inference credits and Cloud Deployment are not available yet
+> and are shown as such in the sidebar.
 
 ## What it does
 
@@ -22,6 +21,8 @@ steps between your editor and a running runtime.
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | Opens runnable examples from [`libraos/cookbook`](https://github.com/libraos/cookbook) and [`libraos/sdk`](https://github.com/libraos/sdk). |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
+| **Sign In / Sign Out** | Signs in to your LibraOS developer account with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
+| **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your organization's Developer Licence. The sidebar shows its status, edition and expiry. |
 | **Open Console** | The LibraOS Developer Console, for keys, licences and usage. |
 
 ## Requirements
@@ -52,12 +53,37 @@ against the `.sha256` published next to it.
 5. Open a new VS Code terminal and run the quickstart file, for example
    `node libraos-quickstart.mts` or `python libraos_quickstart.py`.
 
+## Developer account and licence
+
+**Sign In** asks the Developer Console for a one-time code, opens the sign-in
+page in your browser with the code filled in, and waits. Enter your account
+email there; LibraOS emails you a link, and approving it signs VS Code in. The
+notification can be cancelled at any time. A session lasts 24 hours; when it
+ends, the extension says you are signed out and you sign in again.
+
+**Claim Developer Licence** shows the terms summary and a link to the full
+terms, and claims only after you confirm. A licence is a record of your rights
+under the LibraOS licence terms: who claimed which edition, under which terms,
+and until when. The runtime does not check it, and there is nothing to install
+or configure. Today every self-serve claim is a 90-day organization
+evaluation; production use needs a commercial licence. Claiming again while the
+licence is active shows the same record; once an evaluation has ended,
+claiming again does not renew it.
+
+**Inference credits** are managed on MegaNova. Linking a LibraOS account to a
+MegaNova account is not available yet, so the sidebar shows "Account not
+linked" with a link to the [MegaNova console](https://console.meganova.ai/home)
+and never a balance.
+
 ## Where your secrets live
 
 - Every credential (the model key, the runtime's generated database, signing
-  and admin secrets, and each project's API key) is kept in VS Code
-  **SecretStorage**. None is written to settings, your workspace or the
-  generated compose file.
+  and admin secrets, each project's API key, and your Developer Console
+  session) is kept in VS Code **SecretStorage**. None is written to settings,
+  your workspace or the generated compose file.
+- The Console session token is sent only to the Console address it was issued
+  by (`libraos.consoleUrl`), only over https (plain http only to `localhost`),
+  and only in the `Authorization` header. **Sign Out** deletes it.
 - Your project's API key reaches your code through the `LIBRA_OS_API_KEY`
   environment variable, which the extension sets in VS Code terminals only for
   the current session. Use **Copy Project API Key** to set it elsewhere, and
@@ -80,11 +106,11 @@ names the LibraOS SDK, CLI and cookbook read.
 | `libraos.runtime.port` | `8900` | Runtime port on `127.0.0.1` |
 | `libraos.runtime.postgresPort` | `55432` | Postgres port on `127.0.0.1` (Linux) |
 | `libraos.runtime.image` | pinned release | Runtime image; keep it pinned by `@sha256:` digest |
-| `libraos.consoleUrl` | `https://console.libraos.com` | Developer Console |
+| `libraos.consoleUrl` | `https://console.libraos.com` | Developer Console, used for sign-in and licences |
 
 ## Roadmap
 
-- Sign in, Developer License and welcome credits, with the Developer Console.
+- Inference credits, once LibraOS and MegaNova accounts can be linked.
 - Agent test and logs.
 - Cloud Deployment.
 

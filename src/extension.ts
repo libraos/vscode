@@ -7,13 +7,16 @@ import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
 import { EXAMPLES, rawUrl, webUrl } from "./examples/catalog";
 import { listModels, testModel } from "./model/endpoint";
+import { CloudAccount, consoleUrl } from "./cloud/account";
+import { accountLabel } from "./views/developer";
 
 const MEGANOVA = "https://api.meganova.ai";
 
-export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } {
+export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; account: CloudAccount } {
   const output = vscode.window.createOutputChannel("LibraOS");
   const secrets = new Secrets(ctx.secrets);
   const runtime = new RuntimeManager(ctx, secrets, output);
+  const account = new CloudAccount(secrets, output);
 
   const projectState = async () => {
     const folder = vscode.workspace.workspaceFolders?.[0];
@@ -21,7 +24,8 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
     const initialized = await exists(vscode.Uri.joinPath(folder.uri, CONFIG_FILE));
     return { initialized, hasKey: Boolean(await secrets.projectKey(folder.uri)) };
   };
-  const tree = new WorkspaceTree(runtime, projectState);
+  const tree = new WorkspaceTree(runtime, projectState, () => account.state);
+  account.onDidChange(() => tree.refresh());
 
   // Status bar: runtime state at a glance; click to open the LibraOS view.
   const bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 50);
@@ -34,10 +38,15 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
         : st === "starting"
           ? "$(loading~spin) LibraOS"
           : "$(circle-outline) LibraOS";
-    bar.tooltip = st === "running" ? `LibraOS runtime running at ${runtime.baseUrl}` : `LibraOS runtime: ${st}`;
+    const who = accountLabel(account.state);
+    bar.tooltip = [
+      st === "running" ? `LibraOS runtime running at ${runtime.baseUrl}` : `LibraOS runtime: ${st}`,
+      who ? `Signed in as ${who}` : account.state.signedIn ? "Signed in" : "Not signed in",
+    ].join("\n");
     bar.show();
   };
   runtime.onDidChange(paintBar);
+  account.onDidChange(paintBar);
   paintBar();
 
   // Integrated terminals get the project's runtime URL and key, so examples
@@ -60,7 +69,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
   };
 
   const refreshAll = async () => {
-    await runtime.refresh();
+    await Promise.all([runtime.refresh(), account.refresh()]);
     await applyEnv();
     tree.refresh();
   };
@@ -69,20 +78,11 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
 
   cmd("libraos.refresh", refreshAll);
 
-  cmd("libraos.signIn", async () => {
-    const pick = await vscode.window.showInformationMessage(
-      "Sign-in, the Developer License and the $10 welcome credits arrive with the LibraOS Developer Console. Until then, set a model key with “Configure Model”.",
-      "Configure Model",
-      "Open Console",
-    );
-    if (pick === "Configure Model") await vscode.commands.executeCommand("libraos.configureModel");
-    if (pick === "Open Console") await vscode.commands.executeCommand("libraos.openConsole");
-  });
+  cmd("libraos.signIn", () => account.signIn());
+  cmd("libraos.signOut", () => account.signOut());
+  cmd("libraos.claimLicence", () => account.claimLicence());
 
-  cmd("libraos.openConsole", () => {
-    const url = vscode.workspace.getConfiguration("libraos").get<string>("consoleUrl", "https://console.libraos.com");
-    return vscode.env.openExternal(vscode.Uri.parse(url));
-  });
+  cmd("libraos.openConsole", () => vscode.env.openExternal(vscode.Uri.parse(consoleUrl())));
 
   cmd("libraos.cloudDeploy", () =>
     vscode.window.showInformationMessage("Cloud Deployment is coming soon. For now, run the runtime locally."),
@@ -333,7 +333,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree } 
 
   void refreshAll();
   // Exposed for the integration test.
-  return { tree };
+  return { tree, account };
 }
 
 export function deactivate(): void {}

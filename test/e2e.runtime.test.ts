@@ -23,7 +23,7 @@ const modelBase = process.env.LIBRAOS_E2E_MODEL_BASE ?? "https://api.meganova.ai
 const mode = networkModeFor(process.platform);
 const image =
   process.env.LIBRAOS_E2E_IMAGE ??
-  "ghcr.io/libraos/libraos:v0.2.1@sha256:17dc6f8ce7df3231c161e71b89c9e8a514bdf66d28fa9035883d36aade457bb6";
+  "ghcr.io/libraos/libraos:v0.2.2@sha256:0ccb121cd5760af47a91c491010a63123030533ebe516bd732d94a0575dccdc2";
 
 describe.skipIf(!enabled)("local runtime end to end", () => {
   const dir = mkdtempSync(join(tmpdir(), "libraos-e2e-"));
