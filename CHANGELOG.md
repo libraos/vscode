@@ -4,6 +4,7 @@
 
 - **Copy Setup Token.** The project API key cannot create agents or ingest documents, so most cookbook examples failed against the Runtime this extension manages (`403 api_key_scope`). Copy Setup Token gets a one-hour admin token from the local Runtime, minted by a laptop-only service client whose secret stays in SecretStorage. **Open Terminal** puts it in `LIBRA_OS_SETUP_TOKEN` for that terminal; run a command with `LIBRA_OS_API_KEY="$LIBRA_OS_SETUP_TOKEN" <command>`. A Runtime started by an earlier version offers a restart to add the client; its data is kept.
 - **Get Example: Run on This Extension's Runtime.** For First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs, Get Example offers a terminal with a setup token and the command typed, so they run without the cookbook's own Runtime.
+- **Run and Debug in the examples folder.** In the examples window, **Examples' Run and Debug** (Runtime section), or **Use This Runtime for Run and Debug** in Get Example, gives that window's terminals a setup token as `LIBRA_OS_API_KEY`, so VS Code's Run button and debugger run First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs against the Runtime this extension manages. The token stays in memory, is renewed before it expires, is withdrawn when the Runtime stops, and never reaches project folders.
 - **Personal licence first.** Signed out, the Developer section lists **Licence: Personal (default)** first, then the optional **Sign In** for the Developer Licence.
 
 ## 0.3.2 (preview)

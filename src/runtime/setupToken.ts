@@ -35,6 +35,17 @@ export class SetupTokens {
     private readonly output: vscode.OutputChannel,
   ) {}
 
+  /** A fresh token without any prompt, or undefined. For background refreshes. */
+  async quiet(): Promise<SetupToken | undefined> {
+    if (this.runtime.status !== "running" || !(await this.secrets.hasRuntime())) return undefined;
+    try {
+      return await setupToken(this.runtime.baseUrl, SETUP_CLIENT_ID, (await this.secrets.runtime()).setupClientSecret);
+    } catch (err) {
+      this.output.appendLine(`[setup token] ${String(err)}`);
+      return undefined;
+    }
+  }
+
   /** A fresh token, or undefined after telling the person why there is none. */
   async get(): Promise<SetupToken | undefined> {
     if (this.runtime.status !== "running" || !(await this.secrets.hasRuntime())) {

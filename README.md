@@ -119,6 +119,18 @@ Runtime section while it runs) gets one from the local runtime:
 - A runtime started by an earlier version of the extension has no setup client
   yet; the command offers to restart it. Its data is kept.
 
+**Run and Debug in the examples folder.** VS Code's Run button and debugger
+start the script in a terminal of their own, without the typed command. In the
+window for the examples folder, turn on **Examples' Run and Debug** (Runtime
+section) or choose **Use This Runtime for Run and Debug** when Get Example
+opens an example. Terminals in that window then get `LIBRA_OS_URL` and a setup
+token as `LIBRA_OS_API_KEY`, so Run and Debug just work for First Agent
+(Python), Ticket Routing, Document Q&A and HTTP Async Jobs. The token stays in
+memory, is renewed while the runtime runs, is withdrawn when it stops, and is
+never given to your project folders. Debug configurations that use
+`"console": "internalConsole"` do not get terminal variables; the default
+integrated terminal does.
+
 ### Which Runtime to run them on
 
 The Runtime this extension manages is for your own app. VS Code terminals get

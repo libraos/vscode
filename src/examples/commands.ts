@@ -87,6 +87,10 @@ export interface PrepareResult {
 /** What the examples need from the Runtime this extension manages. */
 export interface LocalRuntime {
   runtimeRunning(): boolean;
+  /** Whether Run and Debug in the examples folder get a setup token. */
+  examplesUseRuntime(): boolean;
+  /** Turns that on, after the person confirms; true when it is on. */
+  enableExamplesRuntime(): Promise<boolean>;
   /** Opens a terminal with a setup token and `command` typed; false if no token was available. */
   openTokenTerminal(name: string, cwd: string, command: string): Promise<boolean>;
 }
@@ -380,12 +384,21 @@ class Examples {
     // Runtime this extension manages, for scripts that read it from the
     // environment, or the cookbook's own Runtime, configured in get-started/.env.
     const RUN_HERE = "Run on This Extension's Runtime";
+    const USE_FOR_RUN = "Use This Runtime for Run and Debug";
     const CREATE_ENV = "Create get-started/.env";
     const tokenOk = canUseSetupToken(e, r.variant) && !!this.local;
+    const examplesWindow = (vscode.workspace.workspaceFolders ?? []).some((f) => path.resolve(f.uri.fsPath) === path.resolve(r.root));
+    if (tokenOk && examplesWindow && this.local!.examplesUseRuntime()) {
+      void vscode.window.showInformationMessage(
+        `“${e.title}” is open. Run and Debug here use the Runtime this extension manages: press Run, or Enter in the terminal.`,
+        "What It Needs",
+      ).then((c) => c && this.showCard(e.id));
+      return;
+    }
     const envFile = path.join(r.root, "get-started", ".env");
     const envTemplate = path.join(r.root, "get-started", ".env.example");
     const needsEnv = e.repo === "cookbook" && e.needs.includes("setupIdentity") && !(await exists(envFile)) && (await exists(envTemplate));
-    const actions = [...(tokenOk ? [RUN_HERE] : []), ...(needsEnv ? [CREATE_ENV] : []), "What It Needs"];
+    const actions = [...(tokenOk ? [examplesWindow ? USE_FOR_RUN : RUN_HERE] : []), ...(needsEnv ? [CREATE_ENV] : []), "What It Needs"];
     const message = tokenOk
       ? `“${e.title}” is open. It needs a setup token: run it on the Runtime this extension manages, or on the cookbook's own Runtime with get-started/.env.`
       : needsEnv
@@ -395,6 +408,13 @@ class Examples {
       if (choice === "What It Needs") await this.showCard(e.id);
       if (choice === CREATE_ENV) await this.createEnv(envTemplate, envFile, r.root);
       if (choice === RUN_HERE) await this.runHere(e, r);
+      if (choice === USE_FOR_RUN && (await this.local!.enableExamplesRuntime())) {
+        // A fresh terminal picks up the token; the one opened before does not.
+        for (const t of vscode.window.terminals) if (t.name === `LibraOS: ${e.title}`) t.dispose();
+        const terminal = vscode.window.createTerminal({ name: `LibraOS: ${e.title}`, cwd: r.runCwd });
+        terminal.show();
+        terminal.sendText(runLine(r.command, r.python ?? "python", process.platform), false);
+      }
     });
   }
 

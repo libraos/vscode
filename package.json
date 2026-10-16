@@ -138,6 +138,11 @@
         "category": "LibraOS"
       },
       {
+        "command": "libraos.toggleExamplesRuntime",
+        "title": "Use This Runtime for the Examples' Run and Debug (On/Off)",
+        "category": "LibraOS"
+      },
+      {
         "command": "libraos.browseExamples",
         "title": "Browse Cookbook",
         "category": "LibraOS"

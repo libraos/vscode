@@ -8,6 +8,25 @@ import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
 import { registerExampleCommands, type ExamplesApi } from "./examples/commands";
 import { SetupTokens } from "./runtime/setupToken";
+import { renewIn, terminalEnv } from "./runtime/terminalEnv";
+
+const EXAMPLES_RUNTIME_KEY = "libraos.examples.useLocalRuntime";
+
+async function hasExamplesFolder(): Promise<boolean> {
+  for (const f of vscode.workspace.workspaceFolders ?? []) {
+    if (await fileExists(vscode.Uri.joinPath(f.uri, ".libraos", "source.json"))) return true;
+  }
+  return false;
+}
+
+async function fileExists(uri: vscode.Uri): Promise<boolean> {
+  try {
+    await vscode.workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
+}
 import { listModels, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
@@ -37,7 +56,10 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     const initialized = await exists(vscode.Uri.joinPath(folder.uri, CONFIG_FILE));
     return { initialized, hasKey: Boolean(await secrets.projectKey(folder.uri)) };
   };
-  const tree = new WorkspaceTree(runtime, projectState, () => account.state);
+  const tree = new WorkspaceTree(runtime, projectState, () => account.state, async () => ({
+    open: await hasExamplesFolder(),
+    useRuntime: ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false),
+  }));
   account.onDidChange(() => tree.refresh());
 
   // Status bar: runtime state at a glance; click to open the LibraOS view.
@@ -59,6 +81,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     bar.show();
   };
   runtime.onDidChange(paintBar);
+  ctx.subscriptions.push({ dispose: () => renewal && clearTimeout(renewal) });
   account.onDidChange(paintBar);
   paintBar();
 
@@ -67,19 +90,47 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
   const env = ctx.environmentVariableCollection;
   env.persistent = false;
   env.description = "LibraOS runtime URL and project API key";
+  const tokens = new SetupTokens(runtime, secrets, output);
+  // In a Get Example folder where the person turned on "Use This Runtime for
+  // Run and Debug", terminals (and so VS Code's Run button and debugger) get a
+  // setup token as LIBRA_OS_API_KEY instead. It lives only in memory and is
+  // renewed before its hour runs out.
+  let renewal: NodeJS.Timeout | undefined;
+  const examplesFolders = async () => {
+    const out: vscode.WorkspaceFolder[] = [];
+    for (const f of vscode.workspace.workspaceFolders ?? []) {
+      if (await fileExists(vscode.Uri.joinPath(f.uri, ".libraos", "source.json"))) out.push(f);
+    }
+    return out;
+  };
+  const examplesUseRuntime = () => ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false);
   const applyEnv = async () => {
     env.clear();
-    for (const f of vscode.workspace.workspaceFolders ?? []) {
-      const key = await secrets.projectKey(f.uri);
-      if (!key) continue;
+    if (renewal) clearTimeout(renewal);
+    renewal = undefined;
+    const examples = await examplesFolders();
+    const examplesToken = examples.length && examplesUseRuntime() && runtime.status === "running" ? await tokens.quiet() : undefined;
+    const folders = vscode.workspace.workspaceFolders ?? [];
+    const infos = await Promise.all(
+      folders.map(async (f) => ({ id: f.uri.toString(), isExamples: examples.includes(f), projectKey: await secrets.projectKey(f.uri) })),
+    );
+    const plan = terminalEnv(infos, { baseUrl: runtime.baseUrl, examplesToken: examplesToken?.token });
+    for (const f of folders) {
+      const vars = plan.get(f.uri.toString());
+      if (!vars) continue;
       const scoped = env.getScoped({ workspaceFolder: f });
-      const vars: Record<string, string> = {
-        LIBRA_OS_URL: runtime.baseUrl,
-        LIBRA_OS_API_KEY: key,
-      };
       for (const [k, v] of Object.entries(vars)) scoped.replace(k, v);
     }
+    if (examplesToken) renewal = setTimeout(() => void applyEnv(), renewIn(examplesToken.expiresAt, Date.now()));
   };
+
+  // Issue or withdraw the examples folder's token when the runtime starts or stops.
+  let lastStatus = runtime.status;
+  runtime.onDidChange(() => {
+    if (runtime.status === lastStatus) return;
+    lastStatus = runtime.status;
+    void applyEnv().then(() => tree.refresh());
+  });
 
   const refreshAll = async () => {
     await Promise.all([runtime.refresh(), account.refresh()]);
@@ -307,10 +358,42 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     void vscode.window.showInformationMessage("Project API key copied. Don't commit it.");
   });
 
-  const tokens = new SetupTokens(runtime, secrets, output);
   cmd("libraos.copySetupToken", () => tokens.command());
+  cmd("libraos.toggleExamplesRuntime", async () => {
+    if (examplesUseRuntime()) {
+      await ctx.workspaceState.update(EXAMPLES_RUNTIME_KEY, false);
+      await applyEnv();
+      tree.refresh();
+      void vscode.window.showInformationMessage("LibraOS: Run and Debug in this folder no longer get a setup token. New terminals use no LibraOS key.");
+      return;
+    }
+    if (!(await examplesFolders()).length) {
+      void vscode.window.showInformationMessage("LibraOS: open an examples folder made by Get Example first.");
+      return;
+    }
+    const ok = await vscode.window.showWarningMessage(
+      "Use the Runtime this extension manages for Run and Debug in this folder?",
+      {
+        modal: true,
+        detail:
+          "Terminals in this window, including the ones VS Code's Run button and debugger use, get LIBRA_OS_URL and a setup token as LIBRA_OS_API_KEY. The token is an admin token for the Runtime on this machine; it stays in memory and is renewed every hour while the Runtime runs. Turn this off from the LibraOS view at any time.",
+      },
+      "Use This Runtime",
+    );
+    if (!ok) return;
+    if (!(await tokens.get())) return; // explains a stopped Runtime or a missing setup client
+    await ctx.workspaceState.update(EXAMPLES_RUNTIME_KEY, true);
+    await applyEnv();
+    tree.refresh();
+    void vscode.window.showInformationMessage("LibraOS: Run and Debug in this folder now use this Runtime. Terminals opened before this are relaunched when idle, or show a relaunch prompt.");
+  });
   const examples = registerExampleCommands(ctx, output, {
     runtimeRunning: () => runtime.status === "running",
+    examplesUseRuntime: () => ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false),
+    enableExamplesRuntime: async () => {
+      if (!ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false)) await vscode.commands.executeCommand("libraos.toggleExamplesRuntime");
+      return ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false);
+    },
     openTokenTerminal: async (name, cwd, command) => {
       const token = await tokens.get();
       if (!token) return false;

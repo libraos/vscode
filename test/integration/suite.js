@@ -17,6 +17,7 @@ const COMMANDS = [
   "libraos.initProject",
   "libraos.copyApiKey",
   "libraos.copySetupToken",
+  "libraos.toggleExamplesRuntime",
   "libraos.browseExamples",
   "libraos.openExample",
   "libraos.getExample",
