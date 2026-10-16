@@ -98,7 +98,7 @@ describe("tutorial and source routing", () => {
       expect(isMultiFile(e)).toBe(true);
       expect(e.files).toBeUndefined();
       expect(directoryUrl(e)).toBe(`https://github.com/libraos/cookbook/tree/main/${e.dir}`);
-      expect(exampleCard(e)).toContain("View Source opens its folder on GitHub");
+      expect(exampleCard(e)).toContain("with the rest of the cookbook");
     }
   });
 
@@ -108,7 +108,6 @@ describe("tutorial and source routing", () => {
         expect(f.path.startsWith(`${e.dir}/`)).toBe(true);
         expect(rawUrl(e, f)).toBe(`https://raw.githubusercontent.com/libraos/${e.repo}/main/${f.path}`);
       }
-      expect(exampleCard(e)).not.toContain("several files");
     }
   });
 

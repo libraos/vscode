@@ -37,6 +37,8 @@ export interface SourceFile {
   label: string;
   path: string;
   languageId: string;
+  /** Run command for this file, when an example offers several languages. */
+  command?: string;
 }
 
 export interface Example {
@@ -63,6 +65,10 @@ export interface Example {
   validation: Validation;
   /** Agent that must already exist, for `existingAgent`. */
   agent?: string;
+  /** Repository path of the file Get Example opens in the editor. */
+  main: string;
+  /** Where the example runs from, and the command Get Example types (not runs) in a terminal. */
+  run: { cwd: string; command: string };
 }
 
 export const COOKBOOK_VERSIONS =
@@ -84,13 +90,15 @@ export const EXAMPLES: Example[] = [
     dir: "get-started/01-first-agent",
     tutorial: "get-started/README.md",
     files: [
-      { label: "Python", path: "get-started/01-first-agent/first-agent.py", languageId: "python" },
-      { label: "TypeScript", path: "get-started/01-first-agent/first-agent.ts", languageId: "typescript" },
-      { label: "Bash", path: "get-started/01-first-agent/first-agent.sh", languageId: "shellscript" },
+      { label: "Python", path: "get-started/01-first-agent/first-agent.py", languageId: "python", command: "{python} first-agent.py" },
+      { label: "TypeScript", path: "get-started/01-first-agent/first-agent.ts", languageId: "typescript", command: "npx tsx first-agent.ts" },
+      { label: "Bash", path: "get-started/01-first-agent/first-agent.sh", languageId: "shellscript", command: "bash first-agent.sh" },
     ],
     needs: ["setupIdentity"],
-    requirements: [`${PY} for the Python file; Node 20 or newer for TypeScript; curl for Bash`],
+    requirements: [`${PY} for Python; Node 20 or newer for TypeScript, run with npx tsx; curl and python3 for Bash`, "Every language reads the cookbook Runtime's settings from get-started/.env"],
     validation: "offlineAndReported",
+    main: "get-started/01-first-agent/first-agent.py",
+    run: { cwd: "get-started/01-first-agent", command: "{python} first-agent.py" },
   },
   {
     id: "ticket-routing",
@@ -104,6 +112,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity"],
     requirements: [PY, "A model that supports structured output"],
     validation: "offlineAndReported",
+    main: "recipes/ticket-routing/ticket_routing.py",
+    run: { cwd: "recipes/ticket-routing", command: "{python} ticket_routing.py" },
   },
   {
     id: "document-qa",
@@ -119,6 +129,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity"],
     requirements: [PY],
     validation: "offlineAndReported",
+    main: "recipes/document-qa/document_qa.py",
+    run: { cwd: "recipes/document-qa", command: "{python} document_qa.py" },
   },
   {
     id: "tool-calling",
@@ -133,6 +145,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "callback", "appMount"],
     requirements: [PY_REQ, "A model that supports tool calls and structured output", "The recipe's Compose overlay, started with the cookbook's get-started Compose file"],
     validation: "offlineOnly",
+    main: "recipes/tool-calling/tool_calling.py",
+    run: { cwd: "recipes/tool-calling", command: "{python} webhook_server.py" },
   },
   {
     id: "memory-isolation",
@@ -147,6 +161,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "memory", "twoUsers"],
     requirements: [PY_REQ],
     validation: "offlineOnly",
+    main: "recipes/memory-isolation/memory_isolation.py",
+    run: { cwd: "recipes/memory-isolation", command: "{python} memory_isolation.py" },
   },
   {
     id: "customer-support",
@@ -160,6 +176,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "callback"],
     requirements: [`${PY}, FastAPI and uvicorn`, "Uses the documented bundle-import path and agent-registry reload"],
     validation: "offlineAndReported",
+    main: "recipes/customer-support/support_agent.py",
+    run: { cwd: "recipes/customer-support", command: "{python} support_agent.py" },
   },
   {
     id: "async-jobs",
@@ -179,6 +197,8 @@ export const EXAMPLES: Example[] = [
       "Submit and resume with the same identity",
     ],
     validation: "offlineOnly",
+    main: "recipes/async-jobs/async_jobs.py",
+    run: { cwd: "recipes/async-jobs", command: "{python} async_jobs.py submit --receipt job-receipt.json" },
   },
   // ── See Complete Applications ───────────────────────────────────────────
   {
@@ -193,6 +213,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "signIn", "memory", "documents", "appMount"],
     requirements: [NODE, "Read “Sign in with LibraOS” (get-started/02-sign-in-with-libraos) first", "An embedding model; the setup script creates a demo user"],
     validation: "app",
+    main: "apps/personal-assistant/web/src/App.tsx",
+    run: { cwd: "apps/personal-assistant/web", command: "npm install && npm run dev" },
   },
   {
     id: "marketing-team",
@@ -206,6 +228,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "signIn", "workflows"],
     requirements: [NODE, "A model strong enough to return a valid JSON mission plan", "Its pack (packs/marketing-team) describes the mission contract"],
     validation: "clientTests",
+    main: "apps/digital-marketing-team/web/src/App.tsx",
+    run: { cwd: "apps/digital-marketing-team/web", command: "npm install && npm run dev" },
   },
   {
     id: "mission-console",
@@ -218,6 +242,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity", "signIn", "workflows"],
     requirements: [NODE, "Uses the Marketing Team's setup script for its demo user and knowledge", "Today its catalog has one mission, the marketing-team pack's"],
     validation: "clientTests",
+    main: "apps/mission-console/src/App.tsx",
+    run: { cwd: "apps/mission-console", command: "npm install && npm run dev" },
   },
   // ── SDK examples ────────────────────────────────────────────────────────
   {
@@ -232,6 +258,8 @@ export const EXAMPLES: Example[] = [
     needs: ["setupIdentity"],
     requirements: ["libraos-sdk 2.0.0; reads LIBRA_OS_URL and LIBRA_OS_API_KEY"],
     validation: "sdk",
+    main: "python/examples/00_quickstart.py",
+    run: { cwd: "python/examples", command: "{python} 00_quickstart.py" },
   },
   {
     id: "py-streaming",
@@ -246,6 +274,8 @@ export const EXAMPLES: Example[] = [
     agent: "default-assistant",
     requirements: ["libraos-sdk 2.0.0; reads LIBRA_OS_URL, LIBRA_OS_API_KEY and LIBRA_OS_AGENT_ID"],
     validation: "sdk",
+    main: "python/examples/09_streaming_messages.py",
+    run: { cwd: "python/examples", command: "{python} 09_streaming_messages.py" },
   },
   {
     id: "py-async-job",
@@ -263,6 +293,8 @@ export const EXAMPLES: Example[] = [
       "Managed jobs route /v1/managed/agents/jobs. Current Runtime source serves it; older releases may not, so check yours. For the native HTTP route with recovery, see “HTTP Async Job & Recovery”",
     ],
     validation: "sdk",
+    main: "python/examples/08_async_job_long_running.py",
+    run: { cwd: "python/examples", command: "{python} 08_async_job_long_running.py" },
   },
   {
     id: "py-custom-tool",
@@ -276,6 +308,8 @@ export const EXAMPLES: Example[] = [
     needs: ["callback"],
     requirements: ["libraos-sdk 2.0.0, FastAPI and uvicorn; reads LIBRA_OS_CB_SECRET", "Only the webhook side: registering the tool on an agent is a separate step. For a full walk-through, see “Tools: Order Lookup”"],
     validation: "sdk",
+    main: "python/examples/05_custom_tool_webhook.py",
+    run: { cwd: "python/examples", command: "{python} -m uvicorn 05_custom_tool_webhook:app --port 8080" },
   },
 ];
 
@@ -418,10 +452,19 @@ export function exampleCard(e: Example): string {
   for (const n of e.needs) lines.push(`• ${needText(e, n)}.`);
   lines.push("", `Runtime: ${runtimeAdvice(e)}`);
   lines.push("", `Validation: ${validationText(e)}`);
-  if (isMultiFile(e)) {
-    lines.push("", "This example has several files. View Source opens its folder on GitHub; the README lists every file, dependency and setting.");
-  }
+  lines.push("", getExampleText(e));
   return lines.join("\n");
+}
+
+/** What Get Example does for this example. */
+export function getExampleText(e: Example): string {
+  const where =
+    e.repo === "cookbook"
+      ? "Get Example downloads it with the rest of the cookbook into a local libraos-cookbook folder, so the files it shares with other examples are there too"
+      : "Get Example downloads it into a local libraos-sdk-examples folder";
+  const langs = variants(e).length > 1 ? `, asks which language you want (${variants(e).map((v) => v.label).join(", ")})` : "";
+  const py = isPython(e) ? `, offers to set up a Python environment with its pinned packages${langs ? " for Python" : ""}` : "";
+  return `${where}${langs}${py}, and opens it with its README. The run command is typed in a terminal but not run.`;
 }
 
 /** When to use the cookbook's setup instead of the extension-managed Runtime. */
@@ -434,3 +477,62 @@ export const SETUP_GUIDE = [
   "",
   COOKBOOK_VERSIONS,
 ].join("\n");
+
+// ── Get Example: local copies ─────────────────────────────────────────────
+
+/** Folder name of the local copy for a repository, inside the chosen parent folder. */
+export function localFolderName(repo: Repo): string {
+  return repo === "cookbook" ? "libraos-cookbook" : "libraos-sdk-examples";
+}
+
+/**
+ * What Get Example downloads. The cookbook is small and its examples share
+ * files across folders (../.env, ../../shared/…, packs/…), so the whole
+ * repository is copied once. For the SDK, only the example files and the
+ * Python README are copied.
+ */
+export function downloadScope(e: Example): "all" | string[] {
+  if (e.repo === "cookbook") return "all";
+  return [...new Set([...(e.files ?? []).map((f) => f.path), e.main, e.tutorial])];
+}
+
+export interface Variant {
+  label: string;
+  main: string;
+  command: string;
+}
+
+/** The ways to run an example: one per language when it offers several. */
+export function variants(e: Example): Variant[] {
+  const multi = (e.files ?? []).filter((f) => f.command);
+  if (multi.length > 1) return multi.map((f) => ({ label: f.label, main: f.path, command: f.command! }));
+  return [{ label: e.files?.[0]?.label ?? "", main: e.main, command: e.run.command }];
+}
+
+export function isPythonCommand(command: string): boolean {
+  return command.includes("{python}");
+}
+
+/** Whether any way of running the example uses Python. */
+export function isPython(e: Example): boolean {
+  return variants(e).some((v) => isPythonCommand(v.command));
+}
+
+// The cookbook pins its examples' Python dependencies in requirements-dev.txt
+// (docs/recipe-setup.md). The SDK examples get the same pins.
+const SDK_EXAMPLE_PINS = ["libraos-sdk==2.0.0", "httpx==0.28.1", "fastapi==0.115.12", "uvicorn==0.34.2"];
+
+/** pip arguments that install an example's dependencies, run from the local copy's root. */
+export function pythonRequirements(e: Example, root: string, join: (...p: string[]) => string): string[] {
+  return e.repo === "cookbook" ? ["-r", join(root, "requirements-dev.txt")] : SDK_EXAMPLE_PINS;
+}
+
+function shellQuote(p: string, platform: NodeJS.Platform): string {
+  if (platform === "win32") return `& "${p}"`;
+  return /^[A-Za-z0-9_\/.\-]+$/.test(p) ? p : `'${p.replace(/'/g, `'\\''`)}'`;
+}
+
+/** The command typed into the example's terminal, with the `.venv` interpreter filled in. */
+export function runLine(command: string, pythonPath: string, platform: NodeJS.Platform): string {
+  return command.replace("{python}", shellQuote(pythonPath, platform));
+}

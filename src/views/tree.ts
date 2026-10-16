@@ -15,14 +15,14 @@ function group(label: string, icon: string, tooltip: string, children: Node[]): 
   return n;
 }
 
-// Clicking an example shows what it needs before anything opens; the inline
-// buttons go straight to its tutorial or source.
+// Clicking an example gets it: downloads it, sets up Python and opens it.
+// The inline buttons show what it needs, its tutorial and its GitHub source.
 function exampleNode(e: Example, path: PathId): Node {
-  const n = action(e.title, "libraos.openExample", e.files?.length ? "file-code" : "file-directory", [e.id], badge(e, path)) as Node & {
+  const n = action(e.title, "libraos.openExample", "cloud-download", [e.id], badge(e, path)) as Node & {
     exampleId: string;
   };
   n.exampleId = e.id;
-  n.tooltip = e.description;
+  n.tooltip = `${e.description}\n\nClick to download it, set it up and open it in VS Code.`;
   n.contextValue = "libraos.example";
   n.id = `example:${path}:${e.id}`;
   return n;

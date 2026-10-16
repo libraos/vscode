@@ -68,16 +68,34 @@ against the `.sha256` published next to it.
 - **SDK Examples:** single-file examples from `libraos/sdk`, marked as SDK
   examples.
 
-Choosing an example first shows what it needs: language and SDK versions,
-Runtime switches, mounted app folders, tool-callback setup, users or sign-in
-clients, and how far it has been validated. Then:
+Click an example in the sidebar, or choose **Get Example**, to run it in VS Code:
 
-- **Open Tutorial** opens its README on GitHub.
-- **View Source** opens a single-file example in an editor. For an example
-  with several files it opens the repository folder, whose README lists every
-  file, dependency and setting. One copied file would not run on its own.
+1. The first time, it asks where to keep the examples. It downloads the whole
+   cookbook from GitHub into a `libraos-cookbook` folder there, so the files
+   examples share (`get-started/.env`, `shared/`, `packs/`) are in place. SDK
+   examples go into `libraos-sdk-examples`, with only the files they need.
+   Later examples reuse the copy. When the cookbook changes on GitHub, it
+   offers to update the copy, keeping your `.env`, `.venv` and your own files.
+2. For a Python example, it offers to create a `.venv` in that folder with the
+   examples' pinned packages (`libraos-sdk` 2.0.0 and the rest of
+   `requirements-dev.txt`), using Python 3.10 or newer. It shows the commands
+   first and installs nothing outside the folder. The folder's VS Code settings
+   point Run and Debug at that `.venv`.
+   First Agent comes in Python, TypeScript and Bash, and Get Example asks
+   which one. TypeScript runs with `npx tsx`, so it needs no Python setup.
+3. It opens the example: in a new window for the examples folder (recommended,
+   so Run and Debug use its `.venv`), or in this window. You get the source
+   file, its README beside it, and a terminal with the run command typed in
+   but not run.
+4. Cookbook examples run against the cookbook's local Runtime, which reads
+   `get-started/.env`. If that file is missing, it offers to create it from
+   the cookbook's template for you to fill in.
 
-Both actions are also inline buttons on each example in the sidebar.
+Each example in the sidebar also has inline buttons: **What This Example
+Needs** shows its language and SDK versions, Runtime switches, mounted app
+folders, tool-callback setup, users or sign-in clients, and how far it has been
+validated. **Open Tutorial** opens its README on GitHub. **View Example on
+GitHub** opens its source there.
 
 ### Which Runtime to run them on
 

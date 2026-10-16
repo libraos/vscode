@@ -18,6 +18,8 @@ const COMMANDS = [
   "libraos.copyApiKey",
   "libraos.browseExamples",
   "libraos.openExample",
+  "libraos.getExample",
+  "libraos.showExampleNeeds",
   "libraos.openExampleTutorial",
   "libraos.viewExampleSource",
   "libraos.openLearningPaths",
@@ -77,7 +79,8 @@ exports.run = async function run() {
   assert.deepStrictEqual(capability, ["Knowledge", "Tools", "Memory", "Async"]);
   const apps = (await api.tree.getChildren(examples[2])).map((n) => n.label);
   assert.deepStrictEqual(apps, ["Personal Assistant", "Marketing Team", "Mission Console"]);
-  for (const c of ["libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
+  assert.deepStrictEqual(ext.packageJSON.activationEvents, ["workspaceContains:.libraos/source.json"], "an examples folder opened by Get Example activates the extension");
+  for (const c of ["libraos.showExampleNeeds", "libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
     assert.ok(inline.some((m) => m.command === c && m.when.includes("viewItem == libraos.example")), `examples have an inline ${c}`);
   }
   assert.strictEqual(api.account.state.signedIn, false, "a fresh install is signed out");
