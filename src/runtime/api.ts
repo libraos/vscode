@@ -20,7 +20,7 @@ export async function health(base: string, f: Fetch = fetch, timeoutMs = 3000): 
       const v = await f(`${base}/api/version`, { signal: AbortSignal.timeout(timeoutMs) });
       if (v.ok) {
         const body = (await v.json()) as Record<string, unknown>;
-        const raw = body.nova_os_version ?? body.version;
+        const raw = body.libraos_version ?? body.nova_os_version ?? body.version;
         version = typeof raw === "string" ? raw : undefined;
       }
     } catch {

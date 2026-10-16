@@ -31,6 +31,18 @@ steps between your editor and a running runtime.
 - A model endpoint: a key for an OpenAI-compatible gateway, a local proxy, or
   Ollama on your machine.
 
+## Install
+
+The extension is not on the Marketplace yet. Download `libraos-<version>.vsix`
+from the [Releases](https://github.com/libraos/vscode/releases) page, then either:
+
+- in VS Code, open the Extensions view, choose **…** › **Install from VSIX…**
+  and pick the file; or
+- run `code --install-extension libraos-<version>.vsix`.
+
+Cursor and other VS Code–based editors install it the same way. Check the file
+against the `.sha256` published next to it.
+
 ## Quick start
 
 1. Open your project folder and the **LibraOS** view in the activity bar.
