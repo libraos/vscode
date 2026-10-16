@@ -263,9 +263,11 @@ export class CloudAccount {
         {
           modal: true,
           detail: [
-            `Your browser opens ${code.verificationUri} with this code filled in. Enter your account email there; LibraOS emails you a link, and approving it signs VS Code in.`,
+            `Your browser opens ${code.verificationUri} with this code filled in. Enter your account email there; LibraOS emails you a link. On the approval page, paste or type this code to approve the sign-in.`,
             "",
-            `Check that the page shows ${code.userCode}. The code expires in ${minutes} minutes and is copied to your clipboard.`,
+            `Already signed in to the Console, or using Google or GitHub? Enter the code on the sign-in page to approve without the email.`,
+            "",
+            `The code is ${code.userCode}. It is copied to your clipboard and expires in ${minutes} minutes.`,
             "",
             "VS Code never asks for or sees a password.",
           ].join("\n"),
@@ -279,11 +281,11 @@ export class CloudAccount {
       const session = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
-          title: `LibraOS: waiting for you to approve code ${code.userCode}`,
+          title: `LibraOS: waiting for code ${code.userCode} to be approved`,
           cancellable: true,
         },
         (progress, token) => {
-          progress.report({ message: "check your email for the approval link" });
+          progress.report({ message: "open the emailed link, then paste or type the code in the browser to approve" });
           const abort = new AbortController();
           token.onCancellationRequested(() => abort.abort());
           return pollDeviceToken(origin, code, { signal: abort.signal });

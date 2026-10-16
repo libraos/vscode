@@ -6,6 +6,7 @@
 - **What an example needs, before it opens.** Choosing an example shows its language and SDK versions, Runtime switches, mounted app folders, callback setup, users or sign-in clients, which Runtime to run it on, and its validation status. A listing is not a compatibility certification.
 - **Open Tutorial** opens the example's README. **View Source** opens a single-file example in an editor, and the repository folder for an example with several files. Both are inline buttons in the sidebar and commands in the Command Palette.
 - **Cookbook Setup or This Runtime?** explains when to use the cookbook's get-started setup instead of the Runtime the extension manages. The extension's Runtime and its configuration are unchanged.
+- **Sign-in prompt** matches the Console's approval page, which now asks you to type the code instead of showing it: the prompt says to paste or type the code in the browser to approve, notes that a Console session or a Google or GitHub account can approve without the email, and the waiting notice says the same.
 
 ## 0.3.0 (preview)
 
