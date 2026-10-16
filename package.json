@@ -30,7 +30,9 @@
     "llm"
   ],
   "main": "./dist/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:.libraos/source.json"
+  ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -137,8 +139,20 @@
       },
       {
         "command": "libraos.openExample",
-        "title": "Open Example",
+        "title": "Get Example",
         "category": "LibraOS"
+      },
+      {
+        "command": "libraos.getExample",
+        "title": "Get Example",
+        "category": "LibraOS",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "libraos.showExampleNeeds",
+        "title": "What This Example Needs",
+        "category": "LibraOS",
+        "icon": "$(info)"
       },
       {
         "command": "libraos.openExampleTutorial",
@@ -148,9 +162,9 @@
       },
       {
         "command": "libraos.viewExampleSource",
-        "title": "View Example Source",
+        "title": "View Example on GitHub",
         "category": "LibraOS",
-        "icon": "$(code)"
+        "icon": "$(github)"
       },
       {
         "command": "libraos.openLearningPaths",
@@ -189,14 +203,19 @@
           "group": "inline"
         },
         {
-          "command": "libraos.openExampleTutorial",
+          "command": "libraos.showExampleNeeds",
           "when": "view == libraos.workspace && viewItem == libraos.example",
           "group": "inline@1"
         },
         {
-          "command": "libraos.viewExampleSource",
+          "command": "libraos.openExampleTutorial",
           "when": "view == libraos.workspace && viewItem == libraos.example",
           "group": "inline@2"
+        },
+        {
+          "command": "libraos.viewExampleSource",
+          "when": "view == libraos.workspace && viewItem == libraos.example",
+          "group": "inline@3"
         }
       ]
     },

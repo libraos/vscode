@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Get Example: examples open and run in VS Code.** Clicking an example downloads it from GitHub into a local folder you choose: the whole cookbook once, into `libraos-cookbook`, so files shared between examples are in place, and only the needed files for SDK examples. It then opens the source file from disk with its README beside it, and a terminal with the run command typed in but not run. In 0.3.1, most examples opened only on GitHub, and single-file examples opened as unsaved buffers that VS Code's Run button could not run.
+- **Python is set up for you.** For a Python example, Get Example offers to create a `.venv` in the examples folder with the pinned packages, `libraos-sdk` 2.0.0 among them, so the script no longer fails with `ModuleNotFoundError: No module named 'libraos'`. It picks Python 3.10 or newer, skipping an older `python3`, shows the commands before running them, and points the folder's Run and Debug at the `.venv`.
+- **First Agent in Python, TypeScript or Bash.** Get Example asks which language, opens that file, and types its command: `npx tsx first-agent.ts` for TypeScript, which needs no Python setup.
+- **Updates keep your work.** When the cookbook changes on GitHub, Get Example offers to update your copy, keeping your `.env`, `.venv` and your own files.
+- **`get-started/.env` from the template.** Cookbook examples read the cookbook Runtime's settings from `get-started/.env`. If it is missing, Get Example offers to create it from the cookbook's template.
+- **What This Example Needs**, **Open Tutorial** and **View Example on GitHub** are inline buttons on each example.
+
 ## 0.3.1 (preview)
 
 - **Cookbook v2 navigation.** Browse Cookbook and the sidebar's Examples follow the cookbook's learning paths: **Learn Step by Step** (L1 to L4), **Explore by Capability** (Knowledge, Tools, Memory, Async) and **See Complete Applications**, with SDK examples listed separately. New entries: Python First Agent, Tools: Order Lookup, Memory: User Isolation, HTTP Async Job & Recovery, Personal Assistant, Marketing Team and Mission Console.

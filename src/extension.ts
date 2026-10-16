@@ -6,7 +6,7 @@ import { adminToken, getInstallation, mintServiceKey } from "./runtime/api";
 import { ADMIN_EMAIL } from "./runtime/compose";
 import { WorkspaceTree } from "./views/tree";
 import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
-import { registerExampleCommands } from "./examples/commands";
+import { registerExampleCommands, type ExamplesApi } from "./examples/commands";
 import { listModels, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
@@ -14,7 +14,7 @@ import { defaultInstallationName } from "./cloud/installations";
 
 const MEGANOVA = "https://api.meganova.ai";
 
-export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; account: CloudAccount } {
+export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; account: CloudAccount; examples: ExamplesApi } {
   const output = vscode.window.createOutputChannel("LibraOS");
   const secrets = new Secrets(ctx.secrets);
   const runtime = new RuntimeManager(ctx, secrets, output);
@@ -306,7 +306,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     void vscode.window.showInformationMessage("Project API key copied. Don't commit it.");
   });
 
-  registerExampleCommands(ctx);
+  const examples = registerExampleCommands(ctx, output);
 
   ctx.subscriptions.push(
     output,
@@ -327,7 +327,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
 
   void refreshAll();
   // Exposed for the integration test.
-  return { tree, account };
+  return { tree, account, examples };
 }
 
 export function deactivate(): void {}
