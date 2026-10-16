@@ -2,7 +2,7 @@
   "name": "libraos",
   "displayName": "LibraOS — AI Runtime for VS Code",
   "description": "Install, run and integrate the LibraOS Runtime into your existing app, from VS Code.",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "preview": true,
   "publisher": "libraos",
   "license": "MIT",
