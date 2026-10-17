@@ -6,6 +6,7 @@ import {
   bindingViews,
   boundAgentIds,
   callSummaryText,
+  collapseCallRows,
   formatLogRow,
   logKey,
   retrieveMarkdown,
@@ -109,5 +110,16 @@ describe("ExplorerClient", () => {
     const { f } = fake({ "/api/knowledge/collections": [403, { error: "admin_required", message: "admin role required" }] });
     await expect(new ExplorerClient("http://rt", async () => "tok", f).collections()).rejects.toThrow(/HTTP 403 admin role required/);
     await expect(new ExplorerClient("http://rt", async () => undefined, f).collections()).rejects.toBeInstanceOf(ExplorerError);
+  });
+});
+
+describe("collapseCallRows", () => {
+  it("keeps one line per call: the model row, not the agent-level duplicate", () => {
+    const rows = [
+      { ts: "2026-10-17T00:42:45.120Z", level: "info", msg: "call success agent=ticket-router model=", fields: { agent_id: "ticket-router", model: "", latency_ms: 9558 } },
+      { ts: "2026-10-17T00:42:45.130Z", level: "info", msg: "call success agent=ticket-router model=glm", fields: { agent_id: "ticket-router", model: "glm", latency_ms: 9557 } },
+      { ts: "2026-10-17T00:43:00Z", level: "error", msg: "call error agent=x model=", fields: { agent_id: "x", model: "", latency_ms: 10 } },
+    ];
+    expect(collapseCallRows(rows).map((r) => r.msg)).toEqual(["call success agent=ticket-router model=glm", "call error agent=x model="]);
   });
 });

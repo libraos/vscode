@@ -51,6 +51,9 @@ export class RuntimeManager {
       mode: networkModeFor(process.platform),
       modelBaseUrl: c.get<string>("model.baseUrl", "https://api.meganova.ai"),
       modelName: c.get<string>("model.name", "Qwen/Qwen3.6-35B-A3B"),
+      embeddingBaseUrl: c.get<string>("embedding.baseUrl", "") || undefined,
+      embeddingModel: c.get<string>("embedding.model", "") || undefined,
+      embeddingDimensions: c.get<number>("embedding.dimensions", 0) || undefined,
     };
   }
 
@@ -185,6 +188,18 @@ export class RuntimeManager {
     // `down` removes the containers; the data volumes are kept.
     await this.compose("Stopping the LibraOS runtime", "down");
     await this.refresh();
+  }
+
+  /**
+   * Deletes the runtime's data: its Postgres volume (agents, users,
+   * conversations, memory, knowledge) and stored documents. The images, the
+   * settings and the generated secrets stay. The caller confirms first.
+   */
+  async resetData(): Promise<boolean> {
+    if (!this.installed) return false;
+    const ok = await this.compose("Deleting the LibraOS runtime's data", "down", "-v");
+    await this.refresh();
+    return ok;
   }
 
   async logs(): Promise<void> {

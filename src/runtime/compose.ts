@@ -1,3 +1,4 @@
+import { embeddingBase } from "../model/endpoint";
 // The local runtime stack: the LibraOS runtime plus its Postgres, run with
 // Docker Compose. Pure functions only, so they can be tested without VS Code.
 
@@ -76,6 +77,11 @@ ${listen}      LIBRA_OS_DATABASE_URL: postgresql://libraos:\${LIBRAOS_PG_PASSWOR
       OPENAI_MODEL: \${LIBRAOS_MODEL:?missing}
       LIBRA_OS_BRAIN_MODEL: \${LIBRAOS_MODEL:?missing}
       LIBRA_OS_SKILL_MODEL: \${LIBRAOS_MODEL:?missing}
+      # Empty means "use the model endpoint" (the runtime treats it as unset).
+      LIBRA_OS_EMBEDDING_API_BASE: \${LIBRAOS_EMBEDDING_BASE:-}
+      LIBRA_OS_EMBEDDING_MODEL: \${LIBRAOS_EMBEDDING_MODEL:-}
+      # The vector store's dimension; it must match the embedding model.
+      LIBRA_OS_EMBED_DIM: \${LIBRAOS_EMBED_DIM:-}
     volumes:
       - documents:/app/data/nova-os/documents
 
@@ -107,6 +113,11 @@ export interface RuntimeSettings {
   modelBaseUrl: string;
   modelName: string;
   modelApiKey?: string;
+  // A separate embedding endpoint and model; unset uses the model endpoint.
+  embeddingBaseUrl?: string;
+  embeddingModel?: string;
+  /** The embedding model's vector size; the runtime's store defaults to 4096. */
+  embeddingDimensions?: number;
 }
 
 // The environment for every `docker compose` call. Compose interpolates the
@@ -124,6 +135,9 @@ export function composeEnv(s: RuntimeSettings, sec: RuntimeSecrets): Record<stri
     OPENAI_API_BASE: containerModelUrl(s.modelBaseUrl, s.mode),
     OPENAI_API_KEY: s.modelApiKey || "local",
     LIBRAOS_MODEL: s.modelName,
+    LIBRAOS_EMBEDDING_BASE: s.embeddingBaseUrl ? containerModelUrl(embeddingBase(s.embeddingBaseUrl), s.mode) : "",
+    LIBRAOS_EMBEDDING_MODEL: s.embeddingModel ?? "",
+    LIBRAOS_EMBED_DIM: s.embeddingDimensions ? String(s.embeddingDimensions) : "",
   };
 }
 

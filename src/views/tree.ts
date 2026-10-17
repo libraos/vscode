@@ -111,6 +111,7 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
     const runtimeChildren: Node[] = [
       info("Status", stLabel, stIcon, rt.status === "running" ? rt.baseUrl : undefined),
       action("Model", "libraos.configureModel", "hubot", [], `${s.modelName}`),
+      action("Embeddings", "libraos.configureEmbeddings", "symbol-array", [], s.embeddingModel ? `${s.embeddingModel}` : "model endpoint default"),
     ];
     if (rt.status === "not-installed") runtimeChildren.push(action("Install Runtime", "libraos.installRuntime", "cloud-download"));
     else if (rt.status === "running") {

@@ -135,7 +135,10 @@ export const EXAMPLES: Example[] = [
     tutorial: "recipes/document-qa/README.md",
     files: [{ label: "Python", path: "recipes/document-qa/document_qa.py", languageId: "python" }],
     needs: ["setupIdentity"],
-    requirements: [PY],
+    requirements: [
+      PY,
+      "An embedding model. The Runtime embeds the documents through LIBRA_OS_EMBEDDING_API_BASE, or through the model endpoint's /v1/embeddings when that is unset; a chat-only endpoint fails at ingest with “embedding API error 404”. For this extension's Runtime, run Configure Embedding Model",
+    ],
     validation: "offlineAndReported",
     main: "recipes/document-qa/document_qa.py",
     run: { cwd: "recipes/document-qa", command: "{python} document_qa.py" },
@@ -282,7 +285,10 @@ export const EXAMPLES: Example[] = [
     files: [{ label: "Python", path: "python/examples/09_streaming_messages.py", languageId: "python" }],
     needs: ["existingAgent"],
     agent: "default-assistant",
-    requirements: ["libraos-sdk 2.0.0; reads LIBRA_OS_URL, LIBRA_OS_API_KEY and LIBRA_OS_AGENT_ID"],
+    requirements: [
+      "libraos-sdk 2.0.0; reads LIBRA_OS_URL, LIBRA_OS_API_KEY and LIBRA_OS_AGENT_ID",
+      "Its default agent, default-assistant, does not exist on Runtime v0.2.2: set LIBRA_OS_AGENT_ID=default, or to an agent you created",
+    ],
     validation: "sdk",
     main: "python/examples/09_streaming_messages.py",
     run: { cwd: "python/examples", command: "{python} 09_streaming_messages.py" },

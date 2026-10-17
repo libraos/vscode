@@ -55,3 +55,38 @@ export async function testModel(base: string, model: string, key?: string, f: Fe
     return { ok: false, ms: Date.now() - t0, error: String(err) };
   }
 }
+
+// The runtime appends /v1/embeddings to LIBRA_OS_EMBEDDING_API_BASE itself, so
+// the base it is given must not end in /v1 (it would call /v1/v1/embeddings).
+export function embeddingBase(base: string): string {
+  return base.replace(/\/+$/, "").replace(/\/v1$/, "");
+}
+
+export interface EmbeddingTest {
+  ok: boolean;
+  ms: number;
+  dims?: number;
+  error?: string;
+}
+
+// One embedding call, so a wrong endpoint or model is caught before the
+// runtime fails at ingest with "embedding API error 404".
+export async function testEmbedding(base: string, model: string, key?: string, f: Fetch = fetch): Promise<EmbeddingTest> {
+  const t0 = Date.now();
+  try {
+    const r = await f(`${apiRoot(base)}/embeddings`, {
+      method: "POST",
+      headers: headers(key),
+      body: JSON.stringify({ model, input: "LibraOS embedding check" }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const text = await r.text();
+    if (!r.ok) return { ok: false, ms: Date.now() - t0, error: `HTTP ${r.status}: ${text.slice(0, 200)}` };
+    const body = JSON.parse(text) as { data?: { embedding?: unknown[] }[] };
+    const v = body.data?.[0]?.embedding;
+    if (!Array.isArray(v) || v.length === 0) return { ok: false, ms: Date.now() - t0, error: "the response had no embedding" };
+    return { ok: true, ms: Date.now() - t0, dims: v.length };
+  } catch (err) {
+    return { ok: false, ms: Date.now() - t0, error: String(err) };
+  }
+}

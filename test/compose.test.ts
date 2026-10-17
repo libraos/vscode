@@ -113,3 +113,22 @@ describe("helpers", () => {
     expect(randomSecret(4, () => Buffer.from([0, 255, 16, 1]))).toBe("00ff1001");
   });
 });
+
+describe("embedding settings", () => {
+  it("leaves embeddings to the model endpoint by default", () => {
+    const env = composeEnv(settings("host"), secrets);
+    expect(env.LIBRAOS_EMBEDDING_BASE).toBe("");
+    expect(env.LIBRAOS_EMBEDDING_MODEL).toBe("");
+    expect(env.LIBRAOS_EMBED_DIM).toBe("");
+    expect(composeFile("host")).toContain("LIBRA_OS_EMBEDDING_API_BASE: ${LIBRAOS_EMBEDDING_BASE:-}");
+  });
+
+  it("passes a separate endpoint without /v1, reachable from the container", () => {
+    const host = composeEnv({ ...settings("host"), embeddingBaseUrl: "http://127.0.0.1:11434/v1/", embeddingModel: "nomic-embed-text", embeddingDimensions: 768 }, secrets);
+    expect(host.LIBRAOS_EMBED_DIM).toBe("768");
+    expect(host.LIBRAOS_EMBEDDING_BASE).toBe("http://127.0.0.1:11434");
+    expect(host.LIBRAOS_EMBEDDING_MODEL).toBe("nomic-embed-text");
+    const bridge = composeEnv({ ...settings("bridge"), embeddingBaseUrl: "http://localhost:11434", embeddingModel: "m" }, secrets);
+    expect(bridge.LIBRAOS_EMBEDDING_BASE).toBe("http://host.docker.internal:11434");
+  });
+});

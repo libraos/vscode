@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Configure Embedding Model.** Knowledge search needs an embedding model. By default the runtime embeds through the model endpoint, which a chat-only server (a local proxy, llama.cpp) cannot do; ingest then failed with `embedding API error 404`. The command points the runtime at Ollama on this machine or another endpoint, test-calls the model, and sets `LIBRA_OS_EMBED_DIM` to its vector size, which the runtime's store must match (`768-dim embedding, the store expects 4096` otherwise).
+- **Runtime Log: one line per call.** The runtime records each agent call twice (an agent-level row and the model call); the log now shows the model row only.
+- **Example cards, from running every example on Runtime v0.2.2:** Document Q&A says it needs an embedding model; the SDK streaming example says its default agent `default-assistant` does not exist on v0.2.2 and to set `LIBRA_OS_AGENT_ID=default`.
+
 - **Runtime Explorer.** A new view lists the local runtime's agents, with their bound collections, tool scope, call stats and memory, and its knowledge collections, with documents, chunks and bound agents. Bindings to collections the runtime does not have are marked. **Show Agent Definition** opens an agent as read-only JSON; **Debug Retrieval** shows the chunks a question would retrieve, stage by stage.
 - **Runtime Log in a terminal.** Follows the runtime while your app runs: one line per agent or model call with latency, tokens and errors, plus server warnings and errors.
 - **FastAPI apps.** Initialize LibraOS Project offers a FastAPI backend for Python projects (detected from your dependencies, or chosen), with `POST /ask`, per-user `end_user`, and a Run and Debug configuration that starts it under uvicorn.
