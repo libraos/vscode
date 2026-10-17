@@ -291,6 +291,13 @@ names the LibraOS SDK, CLI and cookbook read.
 
 ## Development
 
+**Try a branch without building a `.vsix`:** open this repository in VS Code,
+run `npm ci` once, check out the branch and press **F5** (*Run LibraOS
+extension from source*). A second VS Code window opens with the extension
+running from the source; your installed version is unaffected. To test a new
+change, pull and press F5 again. Over Remote-SSH, the extension runs on the
+remote machine and uses its Docker.
+
 ```bash
 npm ci
 npm run typecheck
