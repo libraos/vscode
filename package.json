@@ -105,6 +105,11 @@
         "category": "LibraOS"
       },
       {
+        "command": "libraos.configureEmbeddings",
+        "title": "Configure Embedding Model",
+        "category": "LibraOS"
+      },
+      {
         "command": "libraos.installRuntime",
         "title": "Install Runtime",
         "category": "LibraOS"
@@ -120,6 +125,11 @@
         "title": "Stop Local Runtime",
         "category": "LibraOS",
         "icon": "$(debug-stop)"
+      },
+      {
+        "command": "libraos.resetRuntimeData",
+        "title": "Reset Local Runtime Data (deletes everything it stores)",
+        "category": "LibraOS"
       },
       {
         "command": "libraos.showLogs",
@@ -311,6 +321,21 @@
           "type": "string",
           "default": "Qwen/Qwen3.6-35B-A3B",
           "description": "Model the runtime uses for answers, planning and tools."
+        },
+        "libraos.embedding.baseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Endpoint the runtime uses to embed documents for knowledge search, e.g. Ollama at http://127.0.0.1:11434. Empty uses the model endpoint, which must then serve /v1/embeddings."
+        },
+        "libraos.embedding.model": {
+          "type": "string",
+          "default": "",
+          "description": "Embedding model, e.g. nomic-embed-text on Ollama. Empty uses the runtime's default."
+        },
+        "libraos.embedding.dimensions": {
+          "type": "number",
+          "default": 0,
+          "description": "The embedding model's vector size, which the runtime's vector store must match (Configure Embedding Model fills it in). 0 uses the runtime's default, 4096."
         },
         "libraos.consoleUrl": {
           "type": "string",

@@ -17,6 +17,7 @@ steps between your editor and a running runtime.
 |---|---|
 | **Install Runtime** | Checks for Docker, shows exactly what will run, and pulls the runtime and its Postgres, pinned by digest so Docker verifies what it pulls. |
 | **Configure Model** | Points the runtime at an OpenAI-compatible endpoint: the MegaNova AI gateway, a local proxy, Ollama, or any other. Lists the endpoint's models, lets you pick one, and test-calls it before saving. |
+| **Configure Embedding Model** | Where the runtime embeds documents for knowledge search: the model endpoint (default), Ollama on this machine, or another endpoint. Test-calls the model first and sets the vector size the runtime's store must match. |
 | **Run / Stop Local Runtime** | Starts and stops the runtime, with its health in the status bar. |
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | The [`libraos/cookbook`](https://github.com/libraos/cookbook) learning paths and [`libraos/sdk`](https://github.com/libraos/sdk) examples, with what each one needs before it runs. See [Cookbook examples](#cookbook-examples). |
@@ -265,6 +266,10 @@ names the LibraOS SDK, CLI and cookbook read.
 | `libraos.runtime.port` | `8900` | Runtime port on `127.0.0.1` |
 | `libraos.runtime.postgresPort` | `55432` | Postgres port on `127.0.0.1` (Linux) |
 | `libraos.runtime.image` | pinned release | Runtime image; keep it pinned by `@sha256:` digest |
+| `libraos.embedding.baseUrl` | empty | Embedding endpoint; empty uses the model endpoint, which must then serve `/v1/embeddings` |
+| `libraos.embedding.model` | empty | Embedding model, e.g. `nomic-embed-text` on Ollama |
+| `libraos.embedding.dimensions` | `0` | The embedding model's vector size; `0` uses the runtime's default (4096) |
+| `libraos.runtimeLog.serverLevel` | `warn` | Lowest server log level the Runtime Log shows |
 | `libraos.consoleUrl` | `https://console.libraos.com` | Developer Console, used for sign-in and licences |
 
 ## Roadmap

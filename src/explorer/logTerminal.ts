@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { formatLogRow, logKey, type ExplorerClient, type LogRow } from "./client";
+import { collapseCallRows, formatLogRow, logKey, type ExplorerClient, type LogRow } from "./client";
 
 // "LibraOS: Runtime Log": a terminal that follows the local runtime while an
 // app runs. Each agent or model call appears as a CALL line with its agent,
@@ -39,7 +39,7 @@ export function openRuntimeLog(client: () => ExplorerClient | undefined, opts: L
         c.logs({ source: "server", since, limit: 200, level: opts.serverLevel }),
       ]);
       const rows: { row: LogRow; source: "server" | "requests" }[] = [
-        ...calls.map((row) => ({ row, source: "requests" as const })),
+        ...collapseCallRows(calls).map((row) => ({ row, source: "requests" as const })),
         ...server.map((row) => ({ row, source: "server" as const })),
       ].sort((a, b) => a.row.ts.localeCompare(b.row.ts));
       for (const { row, source } of rows) {

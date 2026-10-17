@@ -79,6 +79,10 @@ export class Secrets {
   setProjectKey(folder: vscode.Uri, v: string): Thenable<void> {
     return this.store.store(projectKeyName(folder), v);
   }
+
+  deleteProjectKey(folder: vscode.Uri): Thenable<void> {
+    return this.store.delete(projectKeyName(folder));
+  }
 }
 
 function projectKeyName(folder: vscode.Uri): string {

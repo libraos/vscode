@@ -219,6 +219,24 @@ export function formatLogRow(row: LogRow, source: "server" | "requests", color =
   return `\x1b[90m${time}\x1b[0m \x1b[${c}m${tag.toUpperCase().padEnd(5)}\x1b[0m ${msg}\x1b[90m${detail}\x1b[0m`;
 }
 
+/**
+ * The runtime records an agent call twice: an agent-level row without a model
+ * and the model call itself, with the same agent and latency. Keep the model
+ * row, so each call is one line.
+ */
+export function collapseCallRows(rows: LogRow[]): LogRow[] {
+  const f = (r: LogRow) => r.fields ?? {};
+  return rows.filter((r) => {
+    if (f(r).model) return true;
+    const agent = f(r).agent_id;
+    const latency = Number(f(r).latency_ms);
+    const second = r.ts.slice(0, 19);
+    return !rows.some(
+      (o) => o !== r && f(o).model && f(o).agent_id === agent && o.ts.slice(0, 19) === second && Math.abs(Number(f(o).latency_ms) - latency) <= 5,
+    );
+  });
+}
+
 /** A stable key for a log row, to show each row once across overlapping polls. */
 export function logKey(row: LogRow, source: string): string {
   return `${source}|${row.ts}|${row.request_id ?? ""}|${row.msg}`;

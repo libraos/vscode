@@ -29,7 +29,7 @@ async function fileExists(uri: vscode.Uri): Promise<boolean> {
     return false;
   }
 }
-import { listModels, testModel } from "./model/endpoint";
+import { listModels, testEmbedding, testModel } from "./model/endpoint";
 import { CloudAccount, consoleUrl } from "./cloud/account";
 import { accountLabel } from "./views/developer";
 import { defaultInstallationName } from "./cloud/installations";
@@ -155,6 +155,99 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
   cmd("libraos.cloudDeploy", () =>
     vscode.window.showInformationMessage("Cloud Deployment is coming soon. For now, run the runtime locally."),
   );
+
+  // Knowledge search needs an embedding model. By default the runtime embeds
+  // through the model endpoint, which a chat-only server (a local proxy,
+  // llama.cpp) cannot do: ingest then fails with "embedding API error 404".
+  // Destructive: deletes everything the runtime stores. Needed to change the
+  // vector store's size, and to start over.
+  const resetRuntimeData = async (reason?: string): Promise<boolean> => {
+    const ok = await vscode.window.showWarningMessage(
+      "Delete all of the local runtime's data?",
+      {
+        modal: true,
+        detail: [
+          reason ?? "",
+          "This deletes its database and stored documents: agents, users, conversations, memory and knowledge collections. Project API keys minted on it stop working; run Initialize LibraOS Project again for each project.",
+          "The runtime images, your settings and the extension's secrets are kept. This cannot be undone.",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+      },
+      "Delete Runtime Data",
+    );
+    if (ok !== "Delete Runtime Data") return false;
+    if (!(await runtime.resetData())) return false;
+    for (const f of vscode.workspace.workspaceFolders ?? []) await secrets.deleteProjectKey(f.uri);
+    await applyEnv();
+    tree.refresh();
+    void vscode.window.showInformationMessage("LibraOS: the runtime's data was deleted. Run Local Runtime to start it fresh.");
+    return true;
+  };
+  cmd("libraos.resetRuntimeData", () => resetRuntimeData());
+
+  cmd("libraos.configureEmbeddings", async () => {
+    const cfg = vscode.workspace.getConfiguration("libraos");
+    const pick = await vscode.window.showQuickPick(
+      [
+        { label: "Use the model endpoint", description: cfg.get<string>("model.baseUrl", ""), base: "", model: "" },
+        { label: "Ollama on this machine", description: "http://127.0.0.1:11434 · nomic-embed-text (ollama pull nomic-embed-text)", base: "http://127.0.0.1:11434", model: "nomic-embed-text" },
+        { label: "Other OpenAI-compatible endpoint…", description: "", base: "?", model: "" },
+      ],
+      { title: "LibraOS: where should the runtime embed documents for knowledge search?" },
+    );
+    if (!pick) return;
+    let base = pick.base;
+    let model = pick.model;
+    let dims = 0;
+    if (base === "?") {
+      base = (await vscode.window.showInputBox({ title: "Embedding endpoint", prompt: "OpenAI-compatible base URL that serves /v1/embeddings", ignoreFocusOut: true })) ?? "";
+      if (!base) return;
+      model = (await vscode.window.showInputBox({ title: "Embedding model", prompt: "Model name at that endpoint", ignoreFocusOut: true })) ?? "";
+      if (!model) return;
+    }
+    if (base) {
+      const key = base.includes("11434") ? undefined : await secrets.modelKey();
+      const t = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `LibraOS: testing ${model}` }, () => testEmbedding(base, model, key));
+      if (!t.ok) {
+        const go = await vscode.window.showWarningMessage(`LibraOS: the embedding test failed: ${t.error}`, "Save Anyway");
+        if (go !== "Save Anyway") return;
+      } else {
+        dims = t.dims ?? 0;
+        void vscode.window.showInformationMessage(`LibraOS: ${model} returned a ${t.dims}-dimension embedding in ${t.ms} ms.`);
+      }
+    }
+    await cfg.update("embedding.baseUrl", base, vscode.ConfigurationTarget.Global);
+    const before = cfg.get<number>("embedding.dimensions", 0) || 0;
+    const after = base ? dims : 0;
+    await cfg.update("embedding.model", model, vscode.ConfigurationTarget.Global);
+    // The runtime's vector store is sized for one embedding model (4096 by default).
+    await cfg.update("embedding.dimensions", after, vscode.ConfigurationTarget.Global);
+    // The store's vector column is sized when the runtime first starts and is
+    // not resized later, even when empty; a new size needs fresh data.
+    if (before !== after && runtime.status !== "not-installed" && (await secrets.hasRuntime())) {
+      const choice = await vscode.window.showWarningMessage(
+        `The runtime's knowledge store was created for another vector size. ${model || "The default model"} needs ${after || "the default size"}, so documents cannot be ingested until its data is reset.`,
+        "Reset Runtime Data…",
+        "Later",
+      );
+      if (choice === "Reset Runtime Data…" && (await resetRuntimeData(`The new embedding model needs a ${after || "default"}-dimension store.`))) {
+        tree.refresh();
+        return;
+      }
+    }
+    if (runtime.status === "running") {
+      const r = await vscode.window.showInformationMessage(
+        "Restart the runtime to use the new embedding settings? Its data is kept, but documents already embedded with a model of another size must be re-ingested.",
+        "Restart Runtime",
+      );
+      if (r) {
+        await runtime.stop();
+        await runtime.start();
+      }
+    }
+    tree.refresh();
+  });
 
   cmd("libraos.configureModel", async () => {
     const cfg = vscode.workspace.getConfiguration("libraos");
