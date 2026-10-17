@@ -46,6 +46,8 @@ describe("catalog structure", () => {
     const learn = examplesFor("learn");
     expect(learn.map((e) => e.id)).toEqual([
       "first-agent",
+      "first-agent-ts",
+      "first-agent-sh",
       "ticket-routing",
       "document-qa",
       "tool-calling",
@@ -134,6 +136,11 @@ describe("prerequisites and runtime guidance", () => {
     expect(exampleCard(ex("personal-assistant"))).toContain("embedding model");
   });
 
+  it("says up front which examples need a strong model", () => {
+    for (const id of ["marketing-team", "mission-console"]) expect(exampleCard(ex(id)).split("\n")[3]).toMatch(/^• Needs a strong model\. .*at least 10 tasks/);
+    expect(EXAMPLES.filter((e) => e.strongModel).map((e) => e.id)).toEqual(["marketing-team", "mission-console"]);
+  });
+
   it("never implies the extension-managed Runtime is configured for an example that needs more", () => {
     for (const e of EXAMPLES.filter((x) => runtimeFit(x) === "cookbook")) {
       expect(exampleCard(e)).toContain("The Runtime this extension manages is not");
@@ -146,16 +153,16 @@ describe("prerequisites and runtime guidance", () => {
   it("runs on the extension's Runtime with a setup token only where the script reads it and nothing else is missing", () => {
     expect(EXAMPLES.filter((e) => runtimeFit(e) === "setupToken").map((e) => e.id)).toEqual([
       "first-agent",
+      "first-agent-ts",
+      "first-agent-sh",
       "ticket-routing",
       "document-qa",
       "async-jobs",
     ]);
-    expect(canUseSetupToken(ex("first-agent"), "Python")).toBe(true);
-    expect(canUseSetupToken(ex("first-agent"), "TypeScript")).toBe(false);
-    expect(canUseSetupToken(ex("first-agent"), "Bash")).toBe(false);
+    expect(canUseSetupToken(ex("first-agent-ts"))).toBe(true);
     expect(canUseSetupToken(ex("memory-isolation"))).toBe(false); // memory switch and two users
     expect(canUseSetupToken(ex("tool-calling"))).toBe(false); // mount and callback
-    expect(exampleCard(ex("first-agent"))).toContain("with a setup token in Python; the other languages read the cookbook's get-started/.env");
+    expect(exampleCard(ex("first-agent"))).toContain("click it to run it with a setup token");
     expect(exampleCard(ex("async-jobs"))).toContain("“first-assistant” must exist first: run First Agent the same way");
   });
 

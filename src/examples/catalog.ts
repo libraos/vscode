@@ -75,12 +75,23 @@ export interface Example {
    * this extension manages.
    */
   tokenVariants?: "all" | string[];
+  /**
+   * The cookbook change after which the script reads LIBRA_OS_API_KEY. Before
+   * it, Run Example says so instead of failing.
+   */
+  tokenSince?: string;
+  /** What Run Example executes, when more than the typed command (e.g. submit, then resume). */
+  runAll?: string;
+  /** Why a small local model cannot run it. Shown on the sidebar item and the card. */
+  strongModel?: string;
 }
 
 export const COOKBOOK_VERSIONS =
   "The cookbook is written against Runtime v0.2.2 and libraos-sdk 2.0.0 (the same Runtime version this extension pins). Check `/api/version` on the Runtime you run.";
 
 const PY = "Python 3.12 and libraos-sdk 2.0.0";
+const MISSION_MODEL =
+  "The Head of Marketing plans the whole mission as one JSON object: a team and at least 10 tasks with their dependencies. Small local models fail there (GLM-4.7-Flash returned 7 tasks, or broken JSON); Claude Sonnet completed it in about 14 minutes. See libraos/libraos#1752";
 const PY_REQ = "Python 3.12; install the folder's requirements.txt";
 const NODE = "Node 22.12 or newer";
 
@@ -88,24 +99,56 @@ export const EXAMPLES: Example[] = [
   // ── Learn Step by Step / Explore by Capability ──────────────────────────
   {
     id: "first-agent",
-    title: "First Agent",
+    title: "First Agent (Python)",
     description: "Create an agent and get replies that keep the conversation's context",
     repo: "cookbook",
     paths: ["learn"],
     level: "L1",
     dir: "get-started/01-first-agent",
     tutorial: "get-started/README.md",
-    files: [
-      { label: "Python", path: "get-started/01-first-agent/first-agent.py", languageId: "python", command: "{python} first-agent.py" },
-      { label: "TypeScript", path: "get-started/01-first-agent/first-agent.ts", languageId: "typescript", command: "npx tsx first-agent.ts" },
-      { label: "Bash", path: "get-started/01-first-agent/first-agent.sh", languageId: "shellscript", command: "bash first-agent.sh" },
-    ],
+    files: [{ label: "Python", path: "get-started/01-first-agent/first-agent.py", languageId: "python" }],
     needs: ["setupIdentity"],
-    requirements: [`${PY} for Python; Node 20 or newer for TypeScript, run with npx tsx; curl and python3 for Bash`, "Every language reads the cookbook Runtime's settings from get-started/.env"],
+    requirements: [PY],
     validation: "offlineAndReported",
     main: "get-started/01-first-agent/first-agent.py",
     run: { cwd: "get-started/01-first-agent", command: "{python} first-agent.py" },
-    tokenVariants: ["Python"],
+    tokenVariants: "all",
+  },
+  {
+    id: "first-agent-ts",
+    title: "First Agent (TypeScript)",
+    description: "The same agent and conversation with plain fetch, no SDK",
+    repo: "cookbook",
+    paths: ["learn"],
+    level: "L1",
+    dir: "get-started/01-first-agent",
+    tutorial: "get-started/README.md",
+    files: [{ label: "TypeScript", path: "get-started/01-first-agent/first-agent.ts", languageId: "typescript" }],
+    needs: ["setupIdentity"],
+    requirements: ["Node 20 or newer; runs with npx tsx"],
+    validation: "offlineAndReported",
+    main: "get-started/01-first-agent/first-agent.ts",
+    run: { cwd: "get-started/01-first-agent", command: "npx -y tsx first-agent.ts" },
+    tokenVariants: "all",
+    tokenSince: "libraos/cookbook#18",
+  },
+  {
+    id: "first-agent-sh",
+    title: "First Agent (Bash)",
+    description: "The same agent and conversation with curl",
+    repo: "cookbook",
+    paths: ["learn"],
+    level: "L1",
+    dir: "get-started/01-first-agent",
+    tutorial: "get-started/README.md",
+    files: [{ label: "Bash", path: "get-started/01-first-agent/first-agent.sh", languageId: "shellscript" }],
+    needs: ["setupIdentity"],
+    requirements: ["curl and python3"],
+    validation: "offlineAndReported",
+    main: "get-started/01-first-agent/first-agent.sh",
+    run: { cwd: "get-started/01-first-agent", command: "bash first-agent.sh" },
+    tokenVariants: "all",
+    tokenSince: "libraos/cookbook#18",
   },
   {
     id: "ticket-routing",
@@ -211,6 +254,7 @@ export const EXAMPLES: Example[] = [
     validation: "offlineOnly",
     main: "recipes/async-jobs/async_jobs.py",
     run: { cwd: "recipes/async-jobs", command: "{python} async_jobs.py submit --receipt job-receipt.json" },
+    runAll: "rm -f job-receipt.json && {python} async_jobs.py submit --receipt job-receipt.json && {python} async_jobs.py resume --receipt job-receipt.json --timeout 300",
     tokenVariants: "all",
   },
   // ── See Complete Applications ───────────────────────────────────────────
@@ -239,7 +283,8 @@ export const EXAMPLES: Example[] = [
     dir: "apps/digital-marketing-team",
     tutorial: "apps/digital-marketing-team/README.md",
     needs: ["setupIdentity", "signIn", "workflows"],
-    requirements: [NODE, "A model strong enough to return a valid JSON mission plan", "Its pack (packs/marketing-team) describes the mission contract"],
+    requirements: [NODE, "Its pack (packs/marketing-team) describes the mission contract"],
+    strongModel: MISSION_MODEL,
     validation: "clientTests",
     main: "apps/digital-marketing-team/web/src/App.tsx",
     run: { cwd: "apps/digital-marketing-team/web", command: "npm install && npm run dev" },
@@ -254,6 +299,7 @@ export const EXAMPLES: Example[] = [
     tutorial: "apps/mission-console/README.md",
     needs: ["setupIdentity", "signIn", "workflows"],
     requirements: [NODE, "Uses the Marketing Team's setup script for its demo user and knowledge", "Today its catalog has one mission, the marketing-team pack's"],
+    strongModel: MISSION_MODEL,
     validation: "clientTests",
     main: "apps/mission-console/src/App.tsx",
     run: { cwd: "apps/mission-console", command: "npm install && npm run dev" },
@@ -455,7 +501,7 @@ export function runtimeAdvice(e: Example): string {
     case "setupToken": {
       const some = e.tokenVariants !== "all" ? ` in ${(e.tokenVariants ?? []).join(", ")}; the other languages read the cookbook's get-started/.env, so they need the cookbook's Runtime` : "";
       const agent = e.needs.includes("existingAgent") ? ` The agent “${e.agent}” must exist first: run First Agent the same way.` : "";
-      return `Runs on the Runtime this extension manages with a setup token${some}. Get Example offers a terminal with one; the cookbook's get-started Runtime also works.${agent}`;
+      return `Runs on the Runtime this extension manages: click it to run it with a setup token${some}. The cookbook's get-started Runtime also works.${agent}`;
     }
     case "extensionWithAgent":
       return `The extension's project API key can call this example's routes, but the agent “${e.agent}” must exist first, and creating it needs a setup identity. The cookbook's get-started Runtime provides one.`;
@@ -483,6 +529,7 @@ export function exampleCard(e: Example): string {
   const head = e.level || e.capability ? `${badge(e)}. ` : "";
   lines.push(`${head}${e.description}.`, "");
   lines.push("Before you run it:");
+  if (e.strongModel) lines.push(`• Needs a strong model. ${e.strongModel}.`);
   for (const r of e.requirements) lines.push(`• ${r}.`);
   for (const n of e.needs) lines.push(`• ${needText(e, n)}.`);
   lines.push("", `Runtime: ${runtimeAdvice(e)}`);
@@ -499,6 +546,9 @@ export function getExampleText(e: Example): string {
       : "Get Example downloads it into a local libraos-sdk-examples folder";
   const langs = variants(e).length > 1 ? `, asks which language you want (${variants(e).map((v) => v.label).join(", ")})` : "";
   const py = isPython(e) ? `, offers to set up a Python environment with its pinned packages${langs ? " for Python" : ""}` : "";
+  if (isRunnable(e)) {
+    return `Click it (▶ Run Example) to run it on the Runtime this extension manages: it downloads only this example, sets up what it needs, starts the Runtime, and runs it with a one-hour setup token. Get Example downloads it${e.repo === "cookbook" ? " with the rest of the cookbook" : ""} to read and edit.`;
+  }
   return `${where}${langs}${py}, and opens it with its README. The run command is typed in a terminal but not run.`;
 }
 
@@ -569,5 +619,34 @@ function shellQuote(p: string, platform: NodeJS.Platform): string {
 
 /** The command typed into the example's terminal, with the `.venv` interpreter filled in. */
 export function runLine(command: string, pythonPath: string, platform: NodeJS.Platform): string {
-  return command.replace("{python}", shellQuote(pythonPath, platform));
+  return command.replaceAll("{python}", shellQuote(pythonPath, platform));
+}
+
+// ── Run Example ───────────────────────────────────────────────────────────
+
+/** Whether ▶ Run Example can run this example on the extension's runtime. */
+export function isRunnable(e: Example): boolean {
+  return canUseSetupToken(e);
+}
+
+/**
+ * What Run Example downloads: for a runnable cookbook script, only its folder
+ * and what it reads from outside it (the pinned requirements, and the
+ * get-started package.json that makes the TypeScript file an ES module).
+ */
+export function runScope(e: Example): "all" | string[] {
+  if (e.repo !== "cookbook") return downloadScope(e);
+  if (!isRunnable(e)) return "all";
+  return [...new Set([e.dir, e.tutorial, "requirements-dev.txt", "get-started/package.json"])];
+}
+
+/** The command Run Example executes. */
+export function runCommand(e: Example, platform: NodeJS.Platform): string {
+  const cmd = e.runAll ?? e.run.command;
+  return platform === "win32" ? cmd.replace(/^rm -f (\S+) && /, "Remove-Item -ErrorAction SilentlyContinue $1; ") : cmd;
+}
+
+/** Whether a downloaded script takes its token from LIBRA_OS_API_KEY. */
+export function readsTokenFromEnv(source: string): boolean {
+  return source.includes("LIBRA_OS_API_KEY");
 }

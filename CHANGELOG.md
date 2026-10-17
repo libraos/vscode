@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Click an example to run it.** Runnable examples (▶) run in one click on the Runtime this extension manages: Run Example downloads only that example (11 files for First Agent and Async Jobs, instead of the whole cookbook), creates the Python environment if needed, starts the Runtime if it is stopped, and runs the example in a terminal with a one-hour setup token, with the Runtime Log beside it. No folder dialog, no `.env`, no passwords, no switch; one confirmation the first time, with **Always Run Without Asking**.
+- **First Agent in three entries**: Python, TypeScript and Bash, each runs its own script directly instead of asking for a language. TypeScript and Bash take the token once libraos/cookbook#18 is merged; until then Run Example says so instead of failing.
+- Async Jobs runs submit and resume in one go.
+- Examples that need the cookbook's own setup show what they need when clicked. The inline buttons are Run, Get Example and What It Needs; the tutorial and GitHub links are in the right-click menu.
+- Marketing Team and Mission Console say **strong model** in the sidebar, and their cards start with why: the mission is planned as one JSON object with at least 10 tasks, which small local models fail (GLM-4.7-Flash did; Claude Sonnet completed it). Kernel side: libraos/libraos#1752.
+
 ## 0.4.0 (preview)
 
 - **Configure Embedding Model.** Knowledge search needs an embedding model. By default the runtime embeds through the model endpoint, which a chat-only server (a local proxy, llama.cpp) cannot do; ingest then failed with `embedding API error 404`. The command points the runtime at Ollama on this machine or another endpoint, test-calls the model, and sets `LIBRA_OS_EMBED_DIM` to its vector size, which the runtime's store must match (`768-dim embedding, the store expects 4096` otherwise).

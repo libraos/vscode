@@ -1,0 +1,15 @@
+{
+  // F5: build, then open a second VS Code window (Extension Development Host)
+  // running this extension from source. Pull and press F5 again to test a change.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run LibraOS extension from source",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "build extension"
+    }
+  ]
+}

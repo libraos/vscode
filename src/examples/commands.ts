@@ -17,7 +17,11 @@ import {
   isMultiFile,
   canUseSetupToken,
   isPythonCommand,
+  isRunnable,
   localFolderName,
+  readsTokenFromEnv,
+  runCommand,
+  runScope,
   pythonRequirements,
   runLine,
   tutorialUrl,
@@ -26,6 +30,8 @@ import {
   type PathId,
   type Variant,
 } from "./catalog";
+import { readFile, mkdir } from "node:fs/promises";
+import { exportSetupToken } from "../runtime/setupToken";
 import { covers, downloadFiles, fetchTree, readSource, safeJoin, selectFiles, writeSource, type FetchFn } from "./download";
 import {
   displayStep,
@@ -43,6 +49,8 @@ const OPEN_TUTORIAL = "Open Tutorial";
 const VIEW_ON_GITHUB = "View on GitHub";
 const PARENT_KEY = "libraos.examples.parentFolder";
 const PENDING_KEY = "libraos.examples.pendingOpen";
+const RUN_CONSENT_KEY = "libraos.examples.runWithoutAsking";
+const DEFAULT_PARENT = path.join(os.homedir(), "LibraOS Examples");
 
 const exec: ExecFn = (file, args, opts) =>
   new Promise((resolve, reject) =>
@@ -73,6 +81,8 @@ export interface PrepareOptions {
   python?: "ask" | "yes" | "no";
   /** Language to run, for an example that offers several; the first by default. */
   variant?: string;
+  /** What to download; Get Example's scope by default. */
+  scope?: "all" | string[];
 }
 
 export interface PrepareResult {
@@ -93,6 +103,11 @@ export interface LocalRuntime {
   enableExamplesRuntime(): Promise<boolean>;
   /** Opens a terminal with a setup token and `command` typed; false if no token was available. */
   openTokenTerminal(name: string, cwd: string, command: string): Promise<boolean>;
+  /** Starts the runtime if it is installed and stopped; false when it cannot run. */
+  ensureRunning(): Promise<boolean>;
+  /** A setup token for the runtime, after explaining any reason there is none. */
+  setupToken(): Promise<{ token: string; expiresAt: number } | undefined>;
+  baseUrl(): string;
 }
 
 class Examples {
@@ -209,7 +224,7 @@ class Examples {
   /** Download and set up; no prompts except the Python confirmation when `python` is "ask". */
   async prepare(e: Example, opts: PrepareOptions): Promise<PrepareResult | undefined> {
     const root = path.join(opts.parent, localFolderName(e.repo));
-    await this.ensureFiles(e, root);
+    await this.ensureFiles(e, root, opts.scope ?? downloadScope(e));
 
     const all = variants(e);
     const v = all.find((x) => x.label === opts.variant) ?? all[0];
@@ -221,8 +236,7 @@ class Examples {
     return result;
   }
 
-  private async ensureFiles(e: Example, root: string): Promise<void> {
-    const scope = downloadScope(e);
+  private async ensureFiles(e: Example, root: string, scope: "all" | string[]): Promise<void> {
     const local = await readSource(root);
     if (local && local.repo !== e.repo) throw new Error(`${root} holds a copy of libraos/${local.repo}, not libraos/${e.repo}`);
     // A folder LibraOS started filling (.libraos/ exists) can be resumed after
@@ -335,6 +349,75 @@ class Examples {
     if (!(await hasSdk(exec, root, platform))) throw new Error("the Python environment was created but cannot import libraos");
     await writeInterpreterSetting(root, platform);
     return true;
+  }
+
+  // ── Run Example ─────────────────────────────────────────────────────────
+
+  // One click: download what this example needs, set it up, start the
+  // runtime, and run it with a setup token. Examples that need more than the
+  // extension's runtime provides show what they need instead.
+  async runExample(id?: unknown): Promise<void> {
+    const e = await this.resolve(id);
+    if (!e) return;
+    if (!isRunnable(e) || !this.local) return this.showCard(e.id);
+    const saved = this.ctx.globalState.get<string>(PARENT_KEY);
+    const parent = saved && (await exists(saved)) ? saved : DEFAULT_PARENT;
+    if (!(await this.consentToRun(e, parent))) return;
+    await mkdir(parent, { recursive: true });
+    if (!saved) await this.ctx.globalState.update(PARENT_KEY, parent);
+
+    let r: PrepareResult | undefined;
+    try {
+      r = await this.prepare(e, { parent, python: "yes", scope: runScope(e) });
+    } catch (err) {
+      this.output.appendLine(`[examples] run ${e.id}: ${String((err as Error).stack ?? err)}`);
+      void vscode.window.showErrorMessage(`LibraOS: could not get “${e.title}”: ${(err as Error).message}`, "Show Log").then((c) => c && this.output.show());
+      return;
+    }
+    if (!r) return;
+    if (isPythonCommand(r.command) && !r.python) {
+      void vscode.window.showWarningMessage(`LibraOS: “${e.title}” needs Python 3.10 or newer, and its environment could not be set up. See the LibraOS output.`);
+      return;
+    }
+    // A script from before the cookbook change that made it read the token
+    // would fail on credentials; say so instead.
+    if (!readsTokenFromEnv(await readFile(r.main, "utf8").catch(() => ""))) {
+      const c = await vscode.window.showWarningMessage(
+        `LibraOS: this copy of “${e.title}” cannot take a token from this Runtime yet${e.tokenSince ? ` (it needs ${e.tokenSince})` : ""}. Run the Python version, or use the cookbook's own Runtime.`,
+        "Open Tutorial",
+      );
+      if (c) await openWeb(tutorialUrl(e));
+      return;
+    }
+    if (!(await this.local.ensureRunning())) return;
+    const token = await this.local.setupToken();
+    if (!token) return;
+
+    await vscode.window.showTextDocument(vscode.Uri.file(r.main), { preview: true, preserveFocus: false });
+    if (!vscode.window.terminals.some((t) => t.name === "LibraOS: Runtime Log")) await vscode.commands.executeCommand("libraos.showRuntimeLog");
+    const name = `LibraOS ▶ ${e.title}`;
+    for (const t of vscode.window.terminals) if (t.name === name) t.dispose();
+    const terminal = vscode.window.createTerminal({ name, cwd: r.runCwd, env: { LIBRA_OS_URL: this.local.baseUrl(), LIBRA_OS_SETUP_TOKEN: token.token } });
+    terminal.show();
+    terminal.sendText(exportSetupToken(process.platform) + runLine(runCommand(e, process.platform), r.python ?? "python", process.platform), true);
+  }
+
+  private async consentToRun(e: Example, parent: string): Promise<boolean> {
+    if (this.ctx.globalState.get<boolean>(RUN_CONSENT_KEY)) return true;
+    const steps = [
+      `• Downloads this example from GitHub into ${path.join(parent, localFolderName(e.repo))}.`,
+      isPythonCommand(e.run.command) ? "• Creates a Python environment (.venv) in that folder with the example's pinned packages from PyPI, once." : "",
+      "• Starts the local Runtime if it is stopped.",
+      "• Runs the example in a terminal with a one-hour admin token for the local Runtime, kept in memory and never saved.",
+    ].filter(Boolean);
+    const choice = await vscode.window.showInformationMessage(
+      `Run “${e.title}” with LibraOS?`,
+      { modal: true, detail: [...steps, "", "The Runtime Log opens beside it, so you can watch the agent calls."].join("\n") },
+      "Run",
+      "Always Run Without Asking",
+    );
+    if (choice === "Always Run Without Asking") await this.ctx.globalState.update(RUN_CONSENT_KEY, true);
+    return choice === "Run" || choice === "Always Run Without Asking";
   }
 
   // ── Opening ─────────────────────────────────────────────────────────────
@@ -499,8 +582,16 @@ export function registerExampleCommands(ctx: vscode.ExtensionContext, output: vs
   // Clicking an example in the sidebar gets it; the inline buttons and the
   // Command Palette reach the rest. From inline buttons the argument is the
   // tree item, which carries the example id.
-  reg("libraos.openExample", (arg?: unknown) => x.getExample(idOf(arg)));
+  // Clicking an example runs it when the extension's runtime can; otherwise
+  // it shows what the example needs and how to get it.
+  reg("libraos.openExample", async (arg?: unknown) => {
+    const e = await x.resolve(idOf(arg));
+    if (!e) return;
+    if (isRunnable(e)) await x.runExample(e.id);
+    else await x.showCard(e.id);
+  });
   reg("libraos.getExample", (arg?: unknown) => x.getExample(idOf(arg)));
+  reg("libraos.runExample", (arg?: unknown) => x.runExample(idOf(arg)));
   reg("libraos.showExampleNeeds", async (arg?: unknown) => {
     const e = await x.resolve(idOf(arg));
     if (e) await x.showCard(e.id);
