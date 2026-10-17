@@ -72,7 +72,18 @@ against the `.sha256` published next to it.
 - **SDK Examples:** single-file examples from `libraos/sdk`, marked as SDK
   examples.
 
-Click an example in the sidebar, or choose **Get Example**, to run it in VS Code:
+**Click an example to run it.** Examples marked ▶ (First Agent in Python,
+TypeScript and Bash, Ticket Routing, Document Q&A, HTTP Async Jobs) run on
+the Runtime this extension manages: one click downloads only that example
+(a handful of files into `~/LibraOS Examples`), sets up Python if it needs it,
+starts the Runtime if it is stopped, and runs it in a terminal with a one-hour
+setup token. The Runtime Log opens beside it. The first time, one dialog lists
+these steps; choose **Always Run Without Asking** to skip it later. Examples
+that need more than this Runtime offers (a webhook, two users, sign-in, the
+mission engine) open a card that says what they need.
+
+Choose **Get Example** (inline button) to download an example with the rest
+of the cookbook to read and edit:
 
 1. The first time, it asks where to keep the examples. It downloads the whole
    cookbook from GitHub into a `libraos-cookbook` folder there, so the files

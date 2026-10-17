@@ -46,6 +46,8 @@ describe("catalog structure", () => {
     const learn = examplesFor("learn");
     expect(learn.map((e) => e.id)).toEqual([
       "first-agent",
+      "first-agent-ts",
+      "first-agent-sh",
       "ticket-routing",
       "document-qa",
       "tool-calling",
@@ -146,16 +148,16 @@ describe("prerequisites and runtime guidance", () => {
   it("runs on the extension's Runtime with a setup token only where the script reads it and nothing else is missing", () => {
     expect(EXAMPLES.filter((e) => runtimeFit(e) === "setupToken").map((e) => e.id)).toEqual([
       "first-agent",
+      "first-agent-ts",
+      "first-agent-sh",
       "ticket-routing",
       "document-qa",
       "async-jobs",
     ]);
-    expect(canUseSetupToken(ex("first-agent"), "Python")).toBe(true);
-    expect(canUseSetupToken(ex("first-agent"), "TypeScript")).toBe(false);
-    expect(canUseSetupToken(ex("first-agent"), "Bash")).toBe(false);
+    expect(canUseSetupToken(ex("first-agent-ts"))).toBe(true);
     expect(canUseSetupToken(ex("memory-isolation"))).toBe(false); // memory switch and two users
     expect(canUseSetupToken(ex("tool-calling"))).toBe(false); // mount and callback
-    expect(exampleCard(ex("first-agent"))).toContain("with a setup token in Python; the other languages read the cookbook's get-started/.env");
+    expect(exampleCard(ex("first-agent"))).toContain("click it to run it with a setup token");
     expect(exampleCard(ex("async-jobs"))).toContain("“first-assistant” must exist first: run First Agent the same way");
   });
 

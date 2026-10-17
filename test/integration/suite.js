@@ -27,6 +27,7 @@ const COMMANDS = [
   "libraos.toggleExamplesRuntime",
   "libraos.browseExamples",
   "libraos.openExample",
+  "libraos.runExample",
   "libraos.getExample",
   "libraos.showExampleNeeds",
   "libraos.openExampleTutorial",
@@ -82,15 +83,23 @@ exports.run = async function run() {
     "Cookbook Setup or This Runtime?",
   ]);
   const learn = await api.tree.getChildren(examples[0]);
-  assert.deepStrictEqual(learn.slice(0, 2).map((n) => `${n.label} = ${n.description}`), ["First Agent = L1", "Ticket Routing = L1"]);
-  assert.ok(learn.every((n) => n.contextValue === "libraos.example" && n.command.command === "libraos.openExample"));
-  const capability = (await api.tree.getChildren(examples[1])).map((n) => n.description);
+  assert.deepStrictEqual(learn.slice(0, 4).map((n) => `${n.label} = ${n.description}`), [
+    "First Agent (Python) = L1 · first-agent.py",
+    "First Agent (TypeScript) = L1 · first-agent.ts",
+    "First Agent (Bash) = L1 · first-agent.sh",
+    "Ticket Routing = L1",
+  ]);
+  assert.ok(learn.every((n) => n.contextValue.startsWith("libraos.example") && n.command.command === "libraos.openExample"));
+  assert.strictEqual(learn[0].contextValue, "libraos.example.runnable", "First Agent runs on click");
+  assert.strictEqual(learn.find((n) => n.label === "Memory: User Isolation").contextValue, "libraos.example", "Memory needs the cookbook setup");
+  const capability = (await api.tree.getChildren(examples[1])).map((n) => n.description.split(" · ")[0]);
   assert.deepStrictEqual(capability, ["Knowledge", "Tools", "Memory", "Async"]);
   const apps = (await api.tree.getChildren(examples[2])).map((n) => n.label);
   assert.deepStrictEqual(apps, ["Personal Assistant", "Marketing Team", "Mission Console"]);
   assert.deepStrictEqual(ext.packageJSON.activationEvents, ["workspaceContains:.libraos/source.json"], "an examples folder opened by Get Example activates the extension");
-  for (const c of ["libraos.showExampleNeeds", "libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
-    assert.ok(inline.some((m) => m.command === c && m.when.includes("viewItem == libraos.example")), `examples have an inline ${c}`);
+  assert.ok(inline.some((m) => m.command === "libraos.runExample" && m.group.startsWith("inline") && m.when.includes("viewItem == libraos.example.runnable")), "runnable examples have an inline Run");
+  for (const c of ["libraos.getExample", "libraos.showExampleNeeds", "libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
+    assert.ok(inline.some((m) => m.command === c && m.when.includes("viewItem =~ /^libraos\\.example/")), `examples have ${c}`);
   }
   // The Runtime Explorer explains what it needs before the runtime runs.
   const explorerRows = await api.explorer.getChildren();

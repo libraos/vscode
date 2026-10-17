@@ -9,8 +9,12 @@ import {
   getExampleText,
   isPython,
   localFolderName,
+  isRunnable,
   pythonRequirements,
+  readsTokenFromEnv,
+  runCommand,
   runLine,
+  runScope,
   variants,
 } from "../src/examples/catalog";
 import {
@@ -89,21 +93,21 @@ describe("catalog: Get Example data", () => {
     expect(runLine(ex("personal-assistant").run.command, "unused", "linux")).toBe("npm install && npm run dev");
   });
 
-  it("offers First Agent in Python, TypeScript and Bash, each with its own file and command", () => {
-    expect(variants(ex("first-agent"))).toEqual([
-      { label: "Python", main: "get-started/01-first-agent/first-agent.py", command: "{python} first-agent.py" },
-      { label: "TypeScript", main: "get-started/01-first-agent/first-agent.ts", command: "npx tsx first-agent.ts" },
-      { label: "Bash", main: "get-started/01-first-agent/first-agent.sh", command: "bash first-agent.sh" },
-    ]);
-    expect(runLine(variants(ex("first-agent"))[1].command, "/unused", "linux")).toBe("npx tsx first-agent.ts");
-    expect(getExampleText(ex("first-agent"))).toContain("asks which language you want (Python, TypeScript, Bash)");
-    expect(variants(ex("tool-calling"))).toHaveLength(1);
-    expect(variants(ex("document-qa"))).toEqual([{ label: "Python", main: "recipes/document-qa/document_qa.py", command: "{python} document_qa.py" }]);
+  it("lists First Agent as three entries, one script each", () => {
+    for (const [id, file, cmd] of [
+      ["first-agent", "first-agent.py", "{python} first-agent.py"],
+      ["first-agent-ts", "first-agent.ts", "npx -y tsx first-agent.ts"],
+      ["first-agent-sh", "first-agent.sh", "bash first-agent.sh"],
+    ]) {
+      expect(variants(ex(id))).toEqual([{ label: expect.any(String), main: `get-started/01-first-agent/${file}`, command: cmd }]);
+    }
+    expect(ex("first-agent-ts").tokenSince).toBe("libraos/cookbook#18");
   });
 
   it("says on the card what Get Example does", () => {
-    expect(getExampleText(ex("first-agent"))).toContain("libraos-cookbook");
-    expect(getExampleText(ex("first-agent"))).toContain("Python environment");
+    expect(getExampleText(ex("first-agent"))).toContain("▶ Run Example");
+    expect(getExampleText(ex("tool-calling"))).toContain("libraos-cookbook");
+    expect(getExampleText(ex("tool-calling"))).toContain("Python environment");
     expect(getExampleText(ex("marketing-team"))).not.toContain("Python");
     expect(getExampleText(ex("py-quickstart"))).toContain("libraos-sdk-examples");
   });
@@ -230,5 +234,34 @@ describe("python", () => {
     await writeFile(path.join(root, ".vscode", "settings.json"), jsonc);
     expect(await writeInterpreterSetting(root, "linux")).toBe(false);
     expect(await readFile(path.join(root, ".vscode", "settings.json"), "utf8")).toBe(jsonc);
+  });
+});
+
+describe("Run Example", () => {
+  it("runs only the examples the extension's runtime can serve", () => {
+    expect(EXAMPLES.filter(isRunnable).map((e) => e.id)).toEqual(["first-agent", "first-agent-ts", "first-agent-sh", "ticket-routing", "document-qa", "async-jobs"]);
+  });
+
+  it("downloads only the example's folder and what it reads from outside it", () => {
+    expect(runScope(ex("first-agent-ts"))).toEqual(["get-started/01-first-agent", "get-started/README.md", "requirements-dev.txt", "get-started/package.json"]);
+    expect(runScope(ex("tool-calling"))).toBe("all");
+    expect(runScope(ex("py-quickstart"))).toEqual(["python/examples/00_quickstart.py", "python/README.md"]);
+  });
+
+  it("submits and then resumes the async job in one run, starting from a fresh receipt", () => {
+    expect(runCommand(ex("async-jobs"), "linux")).toBe(
+      "rm -f job-receipt.json && {python} async_jobs.py submit --receipt job-receipt.json && {python} async_jobs.py resume --receipt job-receipt.json --timeout 300",
+    );
+    expect(runCommand(ex("async-jobs"), "win32").startsWith("Remove-Item -ErrorAction SilentlyContinue job-receipt.json; ")).toBe(true);
+    expect(runCommand(ex("first-agent"), "linux")).toBe("{python} first-agent.py");
+    // Every {python} is filled in, not only the first.
+    expect(runLine(runCommand(ex("async-jobs"), "linux"), "/v/python", "linux")).toBe(
+      "rm -f job-receipt.json && /v/python async_jobs.py submit --receipt job-receipt.json && /v/python async_jobs.py resume --receipt job-receipt.json --timeout 300",
+    );
+  });
+
+  it("recognises scripts that take their token from LIBRA_OS_API_KEY", () => {
+    expect(readsTokenFromEnv('token = os.environ.get("LIBRA_OS_API_KEY")')).toBe(true);
+    expect(readsTokenFromEnv("secret = env.LIBRA_OS_SERVICE_CLIENTS")).toBe(false);
   });
 });

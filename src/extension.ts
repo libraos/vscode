@@ -543,6 +543,22 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
       if (!ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false)) await vscode.commands.executeCommand("libraos.toggleExamplesRuntime");
       return ctx.workspaceState.get<boolean>(EXAMPLES_RUNTIME_KEY, false);
     },
+    ensureRunning: async () => {
+      if (runtime.status === "running") return true;
+      if (runtime.status === "not-installed") {
+        const c = await vscode.window.showWarningMessage("LibraOS: install the local Runtime first, then run the example again.", "Install Runtime");
+        if (c) await vscode.commands.executeCommand("libraos.installRuntime");
+        return false;
+      }
+      if (runtime.status === "starting") {
+        void vscode.window.showInformationMessage("LibraOS: the Runtime is starting; run the example again in a moment.");
+        return false;
+      }
+      if (!(await runtime.start())) return false;
+      return (runtime.status as string) === "running"; // start() changes the status
+    },
+    setupToken: () => tokens.get(),
+    baseUrl: () => runtime.baseUrl,
     openTokenTerminal: async (name, cwd, command) => {
       const token = await tokens.get();
       if (!token) return false;
