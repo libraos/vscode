@@ -5,10 +5,12 @@ import * as os from "node:os";
 import { adminToken, getInstallation, mintServiceKey } from "./runtime/api";
 import { ADMIN_EMAIL } from "./runtime/compose";
 import { WorkspaceTree } from "./views/tree";
-import { CONFIG_FILE, detectProject, projectConfig, projectTemplate } from "./project/detect";
+import { CONFIG_FILE, FASTAPI_LAUNCH_NAME, detectProject, fastapiTemplate, mergeLaunch, projectConfig, projectTemplate, usesFastApi } from "./project/detect";
 import { registerExampleCommands, type ExamplesApi } from "./examples/commands";
 import { SetupTokens } from "./runtime/setupToken";
 import { renewIn, terminalEnv } from "./runtime/terminalEnv";
+import { registerExplorer } from "./explorer/register";
+import type { ExplorerTree } from "./explorer/tree";
 
 const EXAMPLES_RUNTIME_KEY = "libraos.examples.useLocalRuntime";
 
@@ -34,7 +36,7 @@ import { defaultInstallationName } from "./cloud/installations";
 
 const MEGANOVA = "https://api.meganova.ai";
 
-export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; account: CloudAccount; examples: ExamplesApi } {
+export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; account: CloudAccount; examples: ExamplesApi; explorer: ExplorerTree } {
   const output = vscode.window.createOutputChannel("LibraOS");
   const secrets = new Secrets(ctx.secrets);
   const runtime = new RuntimeManager(ctx, secrets, output);
@@ -284,22 +286,66 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
     const entries = await vscode.workspace.fs.readDirectory(folder.uri);
     const kind = detectProject(entries.map(([name]) => name));
     const s = runtime.settings();
-    const tpl = projectTemplate(kind, s.modelName);
+    let tpl = projectTemplate(kind, s.modelName);
+    let framework = "";
+    if (kind === "python") {
+      // A FastAPI project gets a FastAPI backend; otherwise ask which to start from.
+      const deps = await Promise.all(
+        ["requirements.txt", "pyproject.toml", "Pipfile"].map(async (f) => {
+          try {
+            return Buffer.from(await vscode.workspace.fs.readFile(vscode.Uri.joinPath(folder.uri, f))).toString("utf8");
+          } catch {
+            return "";
+          }
+        }),
+      );
+      let fastapi = usesFastApi(deps.join("\n"));
+      if (!fastapi) {
+        const pick = await vscode.window.showQuickPick(
+          [
+            { label: "FastAPI app", description: "a web backend with POST /ask, run and debugged with uvicorn", fastapi: true },
+            { label: "Script", description: "one chat call", fastapi: false },
+          ],
+          { title: "Start this Python project from" },
+        );
+        if (!pick) return;
+        fastapi = pick.fastapi;
+      }
+      if (fastapi) {
+        tpl = fastapiTemplate(s.modelName);
+        framework = " (FastAPI)";
+      }
+    }
     const configUri = vscode.Uri.joinPath(folder.uri, CONFIG_FILE);
     const quickUri = vscode.Uri.joinPath(folder.uri, tpl.quickstartFile);
 
     const writes: [vscode.Uri, string][] = [];
     if (!(await exists(configUri))) writes.push([configUri, projectConfig(runtime.baseUrl.replace("127.0.0.1", "localhost"), s.modelName)]);
     if (!(await exists(quickUri))) writes.push([quickUri, tpl.quickstart]);
+    let launchNote = "";
+    if (tpl.launch) {
+      const launchUri = vscode.Uri.joinPath(folder.uri, ".vscode", "launch.json");
+      let current: string | undefined;
+      try {
+        current = Buffer.from(await vscode.workspace.fs.readFile(launchUri)).toString("utf8");
+      } catch {
+        current = undefined;
+      }
+      const merged = mergeLaunch(current, tpl.launch);
+      if (merged) writes.push([launchUri, merged]);
+      else if (current !== undefined && !current.includes(String(tpl.launch.name)))
+        launchNote = `\n.vscode/launch.json has comments, so it is not changed. Add the "${tpl.launch.name}" configuration yourself; it is in the LibraOS README.`;
+    }
 
     const detail = [
-      `Detected: ${kind === "other" ? "no known project type (a curl example is used)" : kind}`,
+      `Detected: ${kind === "other" ? "no known project type (a curl example is used)" : kind + framework}`,
       "",
       writes.length ? "Creates:" : "Files already exist; nothing is overwritten.",
       ...writes.map(([u]) => `  ${vscode.workspace.asRelativePath(u)}`),
       "",
       "Mints an API key for this project on the local runtime. The key is kept in VS Code SecretStorage and given to VS Code terminals as LIBRA_OS_API_KEY; it is never written to the workspace.",
       tpl.installCommand ? `\nThen offers to run: ${tpl.installCommand}` : "",
+      launchNote,
     ].join("\n");
     const ok = await vscode.window.showInformationMessage(
       `Initialize LibraOS in ${folder.name}?`,
@@ -341,9 +387,18 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
       }
     }
     if (await exists(quickUri)) await vscode.window.showTextDocument(quickUri);
-    void vscode.window.showInformationMessage(
-      "LibraOS initialized. Open a new VS Code terminal to get LIBRA_OS_URL and LIBRA_OS_API_KEY.",
-    );
+    if (tpl.launch?.name === FASTAPI_LAUNCH_NAME) {
+      void vscode.window
+        .showInformationMessage(
+          `LibraOS initialized with a FastAPI app. Start it from Run and Debug, “${FASTAPI_LAUNCH_NAME}”, and watch its calls in the Runtime Log.`,
+          "Open Runtime Log",
+        )
+        .then((c) => c && vscode.commands.executeCommand("libraos.showRuntimeLog"));
+    } else {
+      void vscode.window.showInformationMessage(
+        "LibraOS initialized. Open a new VS Code terminal to get LIBRA_OS_URL and LIBRA_OS_API_KEY.",
+      );
+    }
   });
 
   cmd("libraos.copyApiKey", async () => {
@@ -359,6 +414,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
   });
 
   cmd("libraos.copySetupToken", () => tokens.command());
+  const explorer = registerExplorer(ctx, runtime, tokens);
   cmd("libraos.toggleExamplesRuntime", async () => {
     if (examplesUseRuntime()) {
       await ctx.workspaceState.update(EXAMPLES_RUNTIME_KEY, false);
@@ -421,7 +477,7 @@ export function activate(ctx: vscode.ExtensionContext): { tree: WorkspaceTree; a
 
   void refreshAll();
   // Exposed for the integration test.
-  return { tree, account, examples };
+  return { tree, account, examples, explorer };
 }
 
 export function deactivate(): void {}

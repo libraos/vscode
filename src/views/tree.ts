@@ -115,6 +115,7 @@ export class WorkspaceTree implements vscode.TreeDataProvider<Node> {
     if (rt.status === "not-installed") runtimeChildren.push(action("Install Runtime", "libraos.installRuntime", "cloud-download"));
     else if (rt.status === "running") {
       runtimeChildren.push(action("Stop Local Runtime", "libraos.stopRuntime", "debug-stop"));
+      runtimeChildren.push(action("Runtime Log", "libraos.showRuntimeLog", "pulse", [], "live, in a terminal"));
       runtimeChildren.push(action("Copy Setup Token", "libraos.copySetupToken", "key", [], "for cookbook examples, 1 h"));
     }
     else if (rt.status === "stopped") runtimeChildren.push(action("Run Local Runtime", "libraos.startRuntime", "play"));

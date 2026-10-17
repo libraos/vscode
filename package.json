@@ -48,6 +48,10 @@
         {
           "id": "libraos.workspace",
           "name": "My Workspace"
+        },
+        {
+          "id": "libraos.explorer",
+          "name": "Runtime Explorer"
         }
       ]
     },
@@ -120,6 +124,34 @@
       {
         "command": "libraos.showLogs",
         "title": "Show Runtime Logs",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.explorer.refresh",
+        "title": "Refresh Runtime Explorer",
+        "category": "LibraOS",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "libraos.explorer.enable",
+        "title": "Enable Runtime Explorer",
+        "category": "LibraOS"
+      },
+      {
+        "command": "libraos.explorer.openAgent",
+        "title": "Show Agent Definition",
+        "category": "LibraOS",
+        "icon": "$(json)"
+      },
+      {
+        "command": "libraos.explorer.debugRetrieve",
+        "title": "Debug Retrieval",
+        "category": "LibraOS",
+        "icon": "$(search)"
+      },
+      {
+        "command": "libraos.showRuntimeLog",
+        "title": "Show Runtime Log in Terminal",
         "category": "LibraOS"
       },
       {
@@ -198,11 +230,20 @@
           "command": "libraos.refresh",
           "when": "view == libraos.workspace",
           "group": "navigation"
+        },
+        {
+          "command": "libraos.explorer.refresh",
+          "when": "view == libraos.explorer",
+          "group": "navigation"
         }
       ],
       "commandPalette": [
         {
           "command": "libraos.openExample",
+          "when": "false"
+        },
+        {
+          "command": "libraos.explorer.openAgent",
           "when": "false"
         }
       ],
@@ -226,6 +267,16 @@
           "command": "libraos.viewExampleSource",
           "when": "view == libraos.workspace && viewItem == libraos.example",
           "group": "inline@3"
+        },
+        {
+          "command": "libraos.explorer.openAgent",
+          "when": "view == libraos.explorer && viewItem =~ /^libraos\\.explorer\\.agent/",
+          "group": "inline@1"
+        },
+        {
+          "command": "libraos.explorer.debugRetrieve",
+          "when": "view == libraos.explorer && viewItem == libraos.explorer.collection",
+          "group": "inline@1"
         }
       ]
     },
@@ -265,6 +316,17 @@
           "type": "string",
           "default": "https://console.libraos.com",
           "description": "LibraOS Developer Console. Sign-in and licences use it; your session token is sent only to this address."
+        },
+        "libraos.runtimeLog.serverLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "warn",
+          "description": "Lowest server log level the Runtime Log terminal shows between agent and model calls."
         }
       }
     }

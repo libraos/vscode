@@ -14,6 +14,11 @@ const COMMANDS = [
   "libraos.startRuntime",
   "libraos.stopRuntime",
   "libraos.showLogs",
+  "libraos.explorer.refresh",
+  "libraos.explorer.enable",
+  "libraos.explorer.openAgent",
+  "libraos.explorer.debugRetrieve",
+  "libraos.showRuntimeLog",
   "libraos.initProject",
   "libraos.copyApiKey",
   "libraos.copySetupToken",
@@ -85,6 +90,10 @@ exports.run = async function run() {
   for (const c of ["libraos.showExampleNeeds", "libraos.openExampleTutorial", "libraos.viewExampleSource"]) {
     assert.ok(inline.some((m) => m.command === c && m.when.includes("viewItem == libraos.example")), `examples have an inline ${c}`);
   }
+  // The Runtime Explorer explains what it needs before the runtime runs.
+  const explorerRows = await api.explorer.getChildren();
+  assert.deepStrictEqual(explorerRows.map((n) => n.label), ["Run the local Runtime to see its agents and knowledge."]);
+  assert.ok(ext.packageJSON.contributes.views.libraos.some((v) => v.id === "libraos.explorer"), "the Runtime Explorer view is contributed");
   assert.strictEqual(api.account.state.signedIn, false, "a fresh install is signed out");
   console.log("integration: ok —", COMMANDS.length, "commands, activation on view open");
 };

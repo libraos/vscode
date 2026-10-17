@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Runtime Explorer.** A new view lists the local runtime's agents, with their bound collections, tool scope, call stats and memory, and its knowledge collections, with documents, chunks and bound agents. Bindings to collections the runtime does not have are marked. **Show Agent Definition** opens an agent as read-only JSON; **Debug Retrieval** shows the chunks a question would retrieve, stage by stage.
+- **Runtime Log in a terminal.** Follows the runtime while your app runs: one line per agent or model call with latency, tokens and errors, plus server warnings and errors.
+- **FastAPI apps.** Initialize LibraOS Project offers a FastAPI backend for Python projects (detected from your dependencies, or chosen), with `POST /ask`, per-user `end_user`, and a Run and Debug configuration that starts it under uvicorn.
+- The SDK managed jobs example now says Runtime v0.2.2 does not serve its route.
+
 - **Copy Setup Token.** The project API key cannot create agents or ingest documents, so most cookbook examples failed against the Runtime this extension manages (`403 api_key_scope`). Copy Setup Token gets a one-hour admin token from the local Runtime, minted by a laptop-only service client whose secret stays in SecretStorage. **Open Terminal** puts it in `LIBRA_OS_SETUP_TOKEN` for that terminal; run a command with `LIBRA_OS_API_KEY="$LIBRA_OS_SETUP_TOKEN" <command>`. A Runtime started by an earlier version offers a restart to add the client; its data is kept.
 - **Get Example: Run on This Extension's Runtime.** For First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs, Get Example offers a terminal with a setup token and the command typed, so they run without the cookbook's own Runtime.
 - **Run and Debug in the examples folder.** In the examples window, **Examples' Run and Debug** (Runtime section), or **Use This Runtime for Run and Debug** in Get Example, gives that window's terminals a setup token as `LIBRA_OS_API_KEY`, so VS Code's Run button and debugger run First Agent (Python), Ticket Routing, Document Q&A and HTTP Async Jobs against the Runtime this extension manages. The token stays in memory, is renewed before it expires, is withdrawn when the Runtime stops, and never reaches project folders.

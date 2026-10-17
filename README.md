@@ -21,6 +21,8 @@ steps between your editor and a running runtime.
 | **Initialize LibraOS Project** | Detects TypeScript, JavaScript, Python or Go, adds a `libraos.json` (no secrets) and a quickstart file, and mints an API key for the project on the local runtime. Python projects are offered `pip install libraos-sdk`. |
 | **Browse Cookbook** | The [`libraos/cookbook`](https://github.com/libraos/cookbook) learning paths and [`libraos/sdk`](https://github.com/libraos/sdk) examples, with what each one needs before it runs. See [Cookbook examples](#cookbook-examples). |
 | **Copy Setup Token** | A one-hour admin token for the local runtime, for cookbook examples that create agents or ingest documents. See [Setup token](#setup-token). |
+| **Runtime Explorer** | A view of what the local runtime holds: agents with their bound collections, call stats and memory, and collections with their documents and bound agents. **Debug Retrieval** shows the chunks a question would retrieve, stage by stage. See [Watch the runtime](#watch-the-runtime). |
+| **Runtime Log** | A terminal that follows the runtime while your app runs: each agent or model call with its latency, tokens and errors, and server warnings in between. |
 | **Show Runtime Logs** | The runtime's recent log in the LibraOS output channel. |
 | **Sign In / Sign Out** | Optional. Personal use needs no sign-in and no licence. Sign in only to claim the free Developer Licence and its benefits, with a one-time code you approve in the browser (device sign-in). VS Code never asks for or sees a password. |
 | **Claim Developer Licence** | Shows the current developer terms and, after you confirm, records your free Developer Licence. Personal use needs no licence. |
@@ -155,6 +157,37 @@ A listed example is not a compatibility certification. The Tools, Memory and
 HTTP Async recipes have passed the cookbook's offline protocol tests, but live
 Runtime and model runs have not been recorded for them yet. See the cookbook's
 [validation notes](https://github.com/libraos/cookbook/blob/main/docs/validation.md).
+
+## Watch the runtime
+
+The **Runtime Explorer** (below My Workspace) and the **Runtime Log** read the
+runtime this extension manages. They are read-only and use a setup token kept
+in memory, so they need the runtime running. A runtime started by an earlier
+version of the extension asks for one restart to enable them; its data is kept.
+
+- **Agents**: each agent's type and model. Expand an agent to see its bound
+  collections with document and chunk counts, its tool scope, its calls (count,
+  errors, average latency, tokens) and its memory. A binding to a collection
+  the runtime does not have is marked. **Show Agent Definition** opens the
+  agent as read-only JSON.
+- **Knowledge**: each collection's documents and chunks, and the agents bound
+  to it. **Debug Retrieval** asks for a question and shows the chunks the
+  runtime would retrieve, stage by stage, with scores.
+- **Runtime Log** (Runtime section, or *LibraOS: Show Runtime Log in
+  Terminal*): one `CALL` line per agent or model call, with server warnings and
+  errors between them (`libraos.runtimeLog.serverLevel`, default `warn`). Press
+  `p` to pause and `c` to clear.
+
+## Python web apps (FastAPI)
+
+**Initialize LibraOS Project** in a Python project that uses FastAPI, or after
+choosing **FastAPI app**, writes `libraos_app.py`: a FastAPI backend with
+`POST /ask` that answers with a LibraOS agent, passing your app's user id as
+`end_user` so each user's memory stays separate. It adds a **LibraOS: FastAPI
+app** configuration to `.vscode/launch.json` (keeping your other
+configurations; a file with comments is left alone), which starts it under
+uvicorn with the debugger and the project key. Start it, call `/ask`, and
+watch each call in the Runtime Log.
 
 ## Developer account and licence
 
