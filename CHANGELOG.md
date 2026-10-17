@@ -6,6 +6,7 @@
 - **First Agent in three entries**: Python, TypeScript and Bash, each runs its own script directly instead of asking for a language. TypeScript and Bash take the token once libraos/cookbook#18 is merged; until then Run Example says so instead of failing.
 - Async Jobs runs submit and resume in one go.
 - Examples that need the cookbook's own setup show what they need when clicked. The inline buttons are Run, Get Example and What It Needs; the tutorial and GitHub links are in the right-click menu.
+- Marketing Team and Mission Console say **strong model** in the sidebar, and their cards start with why: the mission is planned as one JSON object with at least 10 tasks, which small local models fail (GLM-4.7-Flash did; Claude Sonnet completed it). Kernel side: libraos/libraos#1752.
 
 ## 0.4.0 (preview)
 

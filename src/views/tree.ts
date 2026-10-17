@@ -20,13 +20,13 @@ function group(label: string, icon: string, tooltip: string, children: Node[]): 
 function exampleNode(e: Example, path: PathId): Node {
   const runnable = isRunnable(e);
   const file = runnable && e.files?.length === 1 ? e.files[0].path.split("/").pop() : undefined;
-  const n = action(e.title, "libraos.openExample", runnable ? "play" : "book", [e.id], [badge(e, path), file].filter(Boolean).join(" · ")) as Node & {
+  const n = action(e.title, "libraos.openExample", runnable ? "play" : "book", [e.id], [badge(e, path), file, e.strongModel ? "strong model" : undefined].filter(Boolean).join(" · ")) as Node & {
     exampleId: string;
   };
   n.exampleId = e.id;
   n.tooltip = runnable
     ? `${e.description}\n\nClick to run it on the Runtime this extension manages.`
-    : `${e.description}\n\nNeeds the cookbook's own setup. Click to see what it needs.`;
+    : `${e.description}\n\nNeeds the cookbook's own setup${e.strongModel ? " and a strong model" : ""}. Click to see what it needs.`;
   n.contextValue = runnable ? "libraos.example.runnable" : "libraos.example";
   n.id = `example:${path}:${e.id}`;
   return n;

@@ -82,12 +82,16 @@ export interface Example {
   tokenSince?: string;
   /** What Run Example executes, when more than the typed command (e.g. submit, then resume). */
   runAll?: string;
+  /** Why a small local model cannot run it. Shown on the sidebar item and the card. */
+  strongModel?: string;
 }
 
 export const COOKBOOK_VERSIONS =
   "The cookbook is written against Runtime v0.2.2 and libraos-sdk 2.0.0 (the same Runtime version this extension pins). Check `/api/version` on the Runtime you run.";
 
 const PY = "Python 3.12 and libraos-sdk 2.0.0";
+const MISSION_MODEL =
+  "The Head of Marketing plans the whole mission as one JSON object: a team and at least 10 tasks with their dependencies. Small local models fail there (GLM-4.7-Flash returned 7 tasks, or broken JSON); Claude Sonnet completed it in about 14 minutes. See libraos/libraos#1752";
 const PY_REQ = "Python 3.12; install the folder's requirements.txt";
 const NODE = "Node 22.12 or newer";
 
@@ -279,7 +283,8 @@ export const EXAMPLES: Example[] = [
     dir: "apps/digital-marketing-team",
     tutorial: "apps/digital-marketing-team/README.md",
     needs: ["setupIdentity", "signIn", "workflows"],
-    requirements: [NODE, "A model strong enough to return a valid JSON mission plan", "Its pack (packs/marketing-team) describes the mission contract"],
+    requirements: [NODE, "Its pack (packs/marketing-team) describes the mission contract"],
+    strongModel: MISSION_MODEL,
     validation: "clientTests",
     main: "apps/digital-marketing-team/web/src/App.tsx",
     run: { cwd: "apps/digital-marketing-team/web", command: "npm install && npm run dev" },
@@ -294,6 +299,7 @@ export const EXAMPLES: Example[] = [
     tutorial: "apps/mission-console/README.md",
     needs: ["setupIdentity", "signIn", "workflows"],
     requirements: [NODE, "Uses the Marketing Team's setup script for its demo user and knowledge", "Today its catalog has one mission, the marketing-team pack's"],
+    strongModel: MISSION_MODEL,
     validation: "clientTests",
     main: "apps/mission-console/src/App.tsx",
     run: { cwd: "apps/mission-console", command: "npm install && npm run dev" },
@@ -523,6 +529,7 @@ export function exampleCard(e: Example): string {
   const head = e.level || e.capability ? `${badge(e)}. ` : "";
   lines.push(`${head}${e.description}.`, "");
   lines.push("Before you run it:");
+  if (e.strongModel) lines.push(`• Needs a strong model. ${e.strongModel}.`);
   for (const r of e.requirements) lines.push(`• ${r}.`);
   for (const n of e.needs) lines.push(`• ${needText(e, n)}.`);
   lines.push("", `Runtime: ${runtimeAdvice(e)}`);

@@ -136,6 +136,11 @@ describe("prerequisites and runtime guidance", () => {
     expect(exampleCard(ex("personal-assistant"))).toContain("embedding model");
   });
 
+  it("says up front which examples need a strong model", () => {
+    for (const id of ["marketing-team", "mission-console"]) expect(exampleCard(ex(id)).split("\n")[3]).toMatch(/^• Needs a strong model\. .*at least 10 tasks/);
+    expect(EXAMPLES.filter((e) => e.strongModel).map((e) => e.id)).toEqual(["marketing-team", "mission-console"]);
+  });
+
   it("never implies the extension-managed Runtime is configured for an example that needs more", () => {
     for (const e of EXAMPLES.filter((x) => runtimeFit(x) === "cookbook")) {
       expect(exampleCard(e)).toContain("The Runtime this extension manages is not");
