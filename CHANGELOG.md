@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 (preview)
 
 - **Configure Embedding Model.** Knowledge search needs an embedding model. By default the runtime embeds through the model endpoint, which a chat-only server (a local proxy, llama.cpp) cannot do; ingest then failed with `embedding API error 404`. The command points the runtime at Ollama on this machine or another endpoint, test-calls the model, and sets `LIBRA_OS_EMBED_DIM` to its vector size, which the runtime's store must match (`768-dim embedding, the store expects 4096` otherwise).
 - **Runtime Log: one line per call.** The runtime records each agent call twice (an agent-level row and the model call); the log now shows the model row only.
