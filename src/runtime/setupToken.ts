@@ -21,6 +21,15 @@ export function withSetupToken(command: string, platform: NodeJS.Platform): stri
   return `LIBRA_OS_API_KEY="$${SETUP_TOKEN_ENV}" ${command}`;
 }
 
+/**
+ * A prefix that sets LIBRA_OS_API_KEY from the setup token for the rest of a
+ * terminal's session, for commands chained with && (a VAR=x prefix would
+ * reach only the first). The token's value is never typed.
+ */
+export function exportSetupToken(platform: NodeJS.Platform): string {
+  return platform === "win32" ? `$env:LIBRA_OS_API_KEY=$env:${SETUP_TOKEN_ENV}; ` : `export LIBRA_OS_API_KEY="$${SETUP_TOKEN_ENV}"; `;
+}
+
 export function untilLabel(expiresAt: number): string {
   return new Date(expiresAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
