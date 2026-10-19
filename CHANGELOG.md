@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Runtime Explorer: an agent with no bound collections says why that often happens. On runtime v0.2.2 a binding to a collection created only by ingest is dropped without an error; create the collection first. The cookbook's Document Q&A did this, so the Explorer showed no binding (fixed in libraos/cookbook#19).
+
 ## 0.4.1 (preview)
 
 - **Click an example to run it.** Runnable examples (▶) run in one click on the Runtime this extension manages: Run Example downloads only that example (11 files for First Agent and Async Jobs, instead of the whole cookbook), creates the Python environment if needed, starts the Runtime if it is stopped, and runs the example in a terminal with a one-hour setup token, with the Runtime Log beside it. No folder dialog, no `.env`, no passwords, no switch; one confirmation the first time, with **Always Run Without Asking**.
