@@ -150,7 +150,7 @@ export class ExplorerTree implements vscode.TreeDataProvider<ExplorerNode> {
                       collectionId: b.exists ? b.id : undefined,
                     }),
                   )
-                : [item("No collections bound. A binding to a collection that does not exist yet is dropped silently (libraos/libraos#615).", { icon: "info" })],
+                : [item("No collections bound. The runtime drops a binding without an error when the collection was never created, or was created only by ingest; create the collection first (libraos/libraos#615).", { icon: "info" })],
           }),
         );
         if (d?.tool_scope) rows.push(item("Tool scope", { icon: "tools", description: d.tool_scope }));
